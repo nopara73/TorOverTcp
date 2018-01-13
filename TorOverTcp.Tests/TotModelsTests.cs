@@ -1,3 +1,4 @@
+using DotNetEssentials.Logging;
 using System;
 using System.Text;
 using TorOverTcp.TorOverTcp.Models.Fields;
@@ -76,7 +77,18 @@ namespace TorOverTcp.Tests
 		[Fact]
 		public void TestStrangeLinuxBug()
 		{
-			Assert.Equal(4, new TotPurpose("bér").ToBytes(startsWithLength: false).Length);
+			var character = "é";
+			var encoded = Encoding.UTF8.GetBytes(character);
+			Logger.LogTrace(character);
+			var sb1 = new StringBuilder();
+			var sb2 = new StringBuilder();
+			foreach(var b in encoded)
+			{
+				sb1.Append(b);
+				sb2.Append((char)b);
+			}
+			Logger.LogTrace(sb1.ToString());
+			Logger.LogTrace(sb2.ToString());
 		}
 
 		[Fact]

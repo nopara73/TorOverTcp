@@ -57,16 +57,6 @@ namespace TorOverTcp.TorOverTcp.Models.Fields
 		
 		public TotPurpose(byte[] purpose)
 		{
-			var sb = new StringBuilder();
-			var sb2 = new StringBuilder();
-			foreach (var b in purpose)
-			{
-				sb.Append(b.ToString() + " ");
-				sb2.Append((char)b + " ");
-			}
-
-			Logger.LogTrace(sb.ToString());
-			Logger.LogTrace(sb2.ToString());
 			purpose = purpose ?? new byte[] { };
 			Guard.MaximumAndNotNull($"{nameof(purpose)}.{nameof(purpose.Length)}", purpose.Length, 255);
 
@@ -80,7 +70,7 @@ namespace TorOverTcp.TorOverTcp.Models.Fields
 		/// </summary>
 		public TotPurpose(string purpose) : this(Encoding.UTF8.GetBytes(purpose ?? ""))
 		{
-			Logger.LogTrace(purpose);
+
 		}
 
 		#endregion
