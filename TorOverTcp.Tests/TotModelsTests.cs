@@ -7,14 +7,14 @@ using Xunit;
 
 namespace TorOverTcp.Tests
 {
-    public class TotModelsTests : IClassFixture<SharedFixture>
-    {
-        private SharedFixture SharedFixture { get; }
+	public class TotModelsTests : IClassFixture<SharedFixture>
+	{
+		private SharedFixture SharedFixture { get; }
 
-        public TotModelsTests(SharedFixture fixture)
-        {
-            SharedFixture = fixture;
-        }
+		public TotModelsTests(SharedFixture fixture)
+		{
+			SharedFixture = fixture;
+		}
 
 		[Fact]
 		public void TotVersionTest()
