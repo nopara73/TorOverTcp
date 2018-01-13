@@ -78,7 +78,7 @@ namespace TorOverTcp.Tests
 		public void TestStrangeLinuxBug()
 		{
 			var character = "é";
-			var encoded = Encoding.UTF8.GetBytes(character);
+			var encoded = Encoding.UTF8.GetBytes(character + " ");
 			Logger.LogTrace(character);
 			var sb1 = new StringBuilder();
 			var sb2 = new StringBuilder();
