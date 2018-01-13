@@ -57,12 +57,20 @@ namespace TorOverTcp.TorOverTcp.Models.Fields
 		
 		public TotPurpose(byte[] purpose)
 		{
-			Logger.LogTrace("TotPurpose(byte[] purpose)" + " " + purpose.Length);
+			var sb = new StringBuilder();
+			var sb2 = new StringBuilder();
+			foreach (var b in purpose)
+			{
+				sb.Append(b.ToString() + " ");
+				sb2.Append((char)b + " ");
+			}
+
+			Logger.LogTrace(sb.ToString());
+			Logger.LogTrace(sb2.ToString());
 			purpose = purpose ?? new byte[] { };
 			Guard.MaximumAndNotNull($"{nameof(purpose)}.{nameof(purpose.Length)}", purpose.Length, 255);
 
 			Purpose = purpose;
-			Logger.LogTrace("TotPurpose(byte[] purpose)" + " " + Purpose.Length);
 		}
 
 		/// <summary>
@@ -72,7 +80,7 @@ namespace TorOverTcp.TorOverTcp.Models.Fields
 		/// </summary>
 		public TotPurpose(string purpose) : this(Encoding.UTF8.GetBytes(purpose ?? ""))
 		{
-			Logger.LogTrace("TotPurpose(string purpose)");
+			Logger.LogTrace(purpose);
 		}
 
 		#endregion
@@ -113,10 +121,8 @@ namespace TorOverTcp.TorOverTcp.Models.Fields
 		{
 			if(!startsWithLength)
 			{
-				Logger.LogTrace("!startsWithLength" + " " + Purpose.Length + " " + startsWithLength);
 				return Purpose;
 			}
-			Logger.LogTrace("startsWithLength" + " " + Purpose.Length + 1 + " " + startsWithLength);
 			return ByteHelpers.Combine(new byte[] { BitConverter.GetBytes(Length)[0] }, Purpose);
 		}
 
