@@ -78,14 +78,14 @@ namespace TorOverTcp.Tests
 		public void TestStrangeLinuxBug()
 		{
 			var character = "é";
-			var encoded = Encoding.UTF8.GetBytes(character + " ");
+			var encoded = Encoding.UTF8.GetBytes(character);
 			Logger.LogTrace(character);
 			var sb1 = new StringBuilder();
 			var sb2 = new StringBuilder();
 			foreach(var b in encoded)
 			{
-				sb1.Append(b);
-				sb2.Append((char)b);
+				sb1.Append(b + " ");
+				sb2.Append((char)b + " ");
 			}
 			Logger.LogTrace(sb1.ToString());
 			Logger.LogTrace(sb2.ToString());
