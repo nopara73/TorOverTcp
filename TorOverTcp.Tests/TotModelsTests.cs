@@ -114,45 +114,45 @@ namespace TorOverTcp.Tests
 			Assert.Throws<ArgumentOutOfRangeException>(() => new TotPurpose(bigStringBuilder.ToString()));
 		}
 
-		//[Fact]
-		//public void TotContentTest()
-		//{
-		//	var x = TotContent.CantRequestSubscribeNotifyChannel;
-		//	var x2 = TotContent.Empty;
-		//	var x3 = new TotContent();
-		//	x3.FromHex("0003040506070909");
-		//	var x4 = new TotContent();
-		//	x4.FromBytes(new byte[] { 0, 3, 4, 5, 6, 7, 9, 9 });
+		[Fact]
+		public void TotContentTest()
+		{
+			var x = TotContent.CantRequestSubscribeNotifyChannel;
+			var x2 = TotContent.Empty;
+			var x3 = new TotContent();
+			x3.FromHex("0003040506070909");
+			var x4 = new TotContent();
+			x4.FromBytes(new byte[] { 0, 3, 4, 5, 6, 7, 9, 9 });
 
-		//	Assert.NotEqual(x, x2);
-		//	Assert.Equal(x3, x4);
+			Assert.NotEqual(x, x2);
+			Assert.Equal(x3, x4);
 
-		//	Assert.Equal(new TotContent("Cannot send Request to a SubscribeNotify channel."), TotContent.CantRequestSubscribeNotifyChannel);
-		//	Assert.Equal(new TotContent("Cannot send SubscribeRequest to a RequestResponse channel."), TotContent.CantSubscribeRequestRequestResponseChannel);
-		//	Assert.Equal(new byte[] { }, TotContent.Empty.ToBytes());
-		//	Assert.Equal(new TotContent(""), TotContent.Empty);
-		//	Assert.Equal(new TotContent(new byte[] { }), TotContent.Empty);
-		//	Assert.NotEqual(new TotContent(), TotContent.Empty);
-		//	Assert.Equal("", TotContent.Empty.ToString());
-		//	Assert.Equal("foo", new TotContent("foo").ToString());
+			Assert.Equal(new TotContent("Cannot send Request to a SubscribeNotify channel."), TotContent.CantRequestSubscribeNotifyChannel);
+			Assert.Equal(new TotContent("Cannot send SubscribeRequest to a RequestResponse channel."), TotContent.CantSubscribeRequestRequestResponseChannel);
+			Assert.Equal(new byte[] { }, TotContent.Empty.ToBytes());
+			Assert.Equal(new TotContent(""), TotContent.Empty);
+			Assert.Equal(new TotContent(new byte[] { }), TotContent.Empty);
+			Assert.NotEqual(new TotContent(), TotContent.Empty);
+			Assert.Equal("", TotContent.Empty.ToString());
+			Assert.Equal("foo", new TotContent("foo").ToString());
 
-		//	Assert.Equal(3, new TotContent("foo").Length);
+			//Assert.Equal(3, new TotContent("foo").Length);
 
-		//	var bigStringBuilder = new StringBuilder();
-		//	for (int i = 0; i < 536870912; i++)
-		//	{
-		//		bigStringBuilder.Append("0");
-		//	}
-		//	new TotContent(bigStringBuilder.ToString());
-		//	bigStringBuilder.Append("0");
-		//	Assert.Throws<ArgumentOutOfRangeException>(() => new TotContent(bigStringBuilder.ToString()));
+			//var bigStringBuilder = new StringBuilder();
+			//for (int i = 0; i < 536870912; i++)
+			//{
+			//	bigStringBuilder.Append("0");
+			//}
+			//new TotContent(bigStringBuilder.ToString());
+			//bigStringBuilder.Append("0");
+			//Assert.Throws<ArgumentOutOfRangeException>(() => new TotContent(bigStringBuilder.ToString()));
 
-		//	var x5 = new TotContent();
-		//	x5.FromBytes(new byte[] { 3, 0, 0, 0, 1, 2, 3 }, startsWithLength: true);
-		//	x5.FromBytes(new byte[] { 0, 0, 0, 0 }, startsWithLength: true);
-		//	Assert.Throws<FormatException>(() => x5.FromBytes(new byte[] { 3, 0, 0, 0, 1, 2 }, startsWithLength: true));
-		//	Assert.Throws<FormatException>(() => x5.FromBytes(new byte[] { 3, 0, 0 }, startsWithLength: true));
-		//}
+			//var x5 = new TotContent();
+			//x5.FromBytes(new byte[] { 3, 0, 0, 0, 1, 2, 3 }, startsWithLength: true);
+			//x5.FromBytes(new byte[] { 0, 0, 0, 0 }, startsWithLength: true);
+			//Assert.Throws<FormatException>(() => x5.FromBytes(new byte[] { 3, 0, 0, 0, 1, 2 }, startsWithLength: true));
+			//Assert.Throws<FormatException>(() => x5.FromBytes(new byte[] { 3, 0, 0 }, startsWithLength: true));
+		}
 
 		[Fact]
 		public void TotMessageTest()
