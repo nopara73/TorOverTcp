@@ -9,6 +9,5 @@ matrix:
     - os: osx
 
 script:
-  - dotnet restore
   - cd TorOverTcp.Tests
   - dotnet test
