@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using DotNetEssentials.Logging;
 
 namespace TorOverTcp.TorOverTcp.Models.Fields
 {
@@ -56,10 +57,12 @@ namespace TorOverTcp.TorOverTcp.Models.Fields
 		
 		public TotPurpose(byte[] purpose)
 		{
+			Logger.LogTrace("TotPurpose(byte[] purpose)" + " " + purpose.Length);
 			purpose = purpose ?? new byte[] { };
 			Guard.MaximumAndNotNull($"{nameof(purpose)}.{nameof(purpose.Length)}", purpose.Length, 255);
 
 			Purpose = purpose;
+			Logger.LogTrace("TotPurpose(byte[] purpose)" + " " + Purpose.Length);
 		}
 
 		/// <summary>
@@ -69,7 +72,7 @@ namespace TorOverTcp.TorOverTcp.Models.Fields
 		/// </summary>
 		public TotPurpose(string purpose) : this(Encoding.UTF8.GetBytes(purpose ?? ""))
 		{
-
+			Logger.LogTrace("TotPurpose(string purpose)");
 		}
 
 		#endregion
@@ -110,8 +113,10 @@ namespace TorOverTcp.TorOverTcp.Models.Fields
 		{
 			if(!startsWithLength)
 			{
+				Logger.LogTrace("!startsWithLength" + " " + Purpose.Length + " " + startsWithLength);
 				return Purpose;
 			}
+			Logger.LogTrace("startsWithLength" + " " + Purpose.Length + 1 + " " + startsWithLength);
 			return ByteHelpers.Combine(new byte[] { BitConverter.GetBytes(Length)[0] }, Purpose);
 		}
 

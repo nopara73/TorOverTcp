@@ -74,6 +74,12 @@ namespace TorOverTcp.Tests
 		}
 
 		[Fact]
+		public void TestStrangeLinuxBug()
+		{
+			Assert.Equal(4, new TotPurpose("bér").ToBytes(startsWithLength: false).Length);
+		}
+
+		[Fact]
 		public void TotPurposeTest()
 		{
 			var x = TotPurpose.Success;
