@@ -64,11 +64,11 @@ namespace TorOverTcp.TorOverTcp.Models.Fields
 		}
 
 		/// <summary>
-		/// ToT uses UTF8 byte encoding, except for its Content field. 
+		/// ToT uses ASCII byte encoding, except for its Content field. 
 		/// Encoding of the Content field is arbitrary, the server and the client must have mutual understanding. 
-		/// When this document specifies the content as string, it means UTF8 encoding.
+		/// When this document specifies the content as string, it means ASCII encoding.
 		/// </summary>
-		public TotPurpose(string purpose) : this(Encoding.UTF8.GetBytes(purpose ?? ""))
+		public TotPurpose(string purpose) : this(Encoding.ASCII.GetBytes(purpose ?? ""))
 		{
 
 		}
@@ -116,13 +116,16 @@ namespace TorOverTcp.TorOverTcp.Models.Fields
 			return ByteHelpers.Combine(new byte[] { BitConverter.GetBytes(Length)[0] }, Purpose);
 		}
 
+		/// <summary>
+		/// Uses ASCII encoding
+		/// </summary>
 		public override string ToString()
 		{
 			if (this == Success) return ToHex(xhhSyntax: true) + " " + nameof(Success);
 			if (this == BadRequest) return ToHex(xhhSyntax: true) + " " + nameof(BadRequest);
 			if (this == VersionMismatch) return ToHex(xhhSyntax: true) + " " + nameof(VersionMismatch);
 			if (this == UnsuccessfulRequest) return ToHex(xhhSyntax: true) + " " + nameof(UnsuccessfulRequest);
-			return Encoding.UTF8.GetString(Purpose);
+			return Encoding.ASCII.GetString(Purpose);
 		}
 
 		#endregion

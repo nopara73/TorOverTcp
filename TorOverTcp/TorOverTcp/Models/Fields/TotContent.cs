@@ -56,6 +56,7 @@ namespace TorOverTcp.TorOverTcp.Models.Fields
 
 		/// <summary>
 		/// If the Response is other than Success, the Content MAY hold the details of the error.
+		/// This uses ASCII encoding.
 		/// </summary>
 		/// <param name="content">Maximum length in bytes: 536870912</param>
 		public TotContent(string content, Encoding encoding) : this(encoding.GetBytes(content ?? ""))
@@ -67,7 +68,7 @@ namespace TorOverTcp.TorOverTcp.Models.Fields
 		/// If the Response is other than Success, the Content MAY hold the details of the error.
 		/// </summary>
 		/// <param name="content">Maximum length in bytes: 536870912</param>
-		public TotContent(string content) : this(content, Encoding.UTF8)
+		public TotContent(string content) : this(content, Encoding.ASCII)
 		{
 
 		}
@@ -122,7 +123,10 @@ namespace TorOverTcp.TorOverTcp.Models.Fields
 			return ByteHelpers.Combine(BitConverter.GetBytes(Length), Content);
 		}
 
-		public override string ToString() => ToString(Encoding.UTF8);
+		/// <summary>
+		/// This uses ASCII encoding.
+		/// </summary>
+		public override string ToString() => ToString(Encoding.ASCII);
 
 		#endregion
 	}

@@ -75,23 +75,6 @@ namespace TorOverTcp.Tests
 		}
 
 		[Fact]
-		public void TestStrangeLinuxBug()
-		{
-			var character = "é";
-			var encoded = Encoding.UTF8.GetBytes(character);
-			Logger.LogTrace(character);
-			var sb1 = new StringBuilder();
-			var sb2 = new StringBuilder();
-			foreach(var b in encoded)
-			{
-				sb1.Append(b + " ");
-				sb2.Append((char)b + " ");
-			}
-			Logger.LogTrace(sb1.ToString());
-			Logger.LogTrace(sb2.ToString());
-		}
-
-		[Fact]
 		public void TotPurposeTest()
 		{
 			var x = TotPurpose.Success;
@@ -120,8 +103,6 @@ namespace TorOverTcp.Tests
 			Assert.Equal("pong", TotPurpose.Pong.ToString());
 
 			Assert.Equal(3, new TotPurpose("foo").Length);
-			Assert.Equal(4, new TotPurpose("bér").ToBytes(startsWithLength: false).Length);
-			Assert.Equal(5, new TotPurpose("bór").ToBytes(startsWithLength: true).Length);
 
 			var bigStringBuilder = new StringBuilder();
 			for (int i = 0; i < 255; i++)
@@ -154,12 +135,8 @@ namespace TorOverTcp.Tests
 			Assert.NotEqual(new TotContent(), TotContent.Empty);
 			Assert.Equal("", TotContent.Empty.ToString());
 			Assert.Equal("foo", new TotContent("foo").ToString());
-			Assert.Equal("féo", new TotContent("féo").ToString());
 
 			Assert.Equal(3, new TotContent("foo").Length);
-			Assert.Equal(4, new TotContent("bér").ToBytes(startsWithLength: false).Length);
-			Assert.Equal(8, new TotContent("bór").ToBytes(startsWithLength: true).Length);
-			Assert.Equal(7, new TotContent("bór", Encoding.ASCII).ToBytes(startsWithLength: true).Length);
 
 			var bigStringBuilder = new StringBuilder();
 			for (int i = 0; i < 536870912; i++)
