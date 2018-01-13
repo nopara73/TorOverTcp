@@ -136,8 +136,9 @@ namespace TorOverTcp.Tests
 			Assert.Equal("", TotContent.Empty.ToString());
 			Assert.Equal("foo", new TotContent("foo").ToString());
 
-			//Assert.Equal(3, new TotContent("foo").Length);
+			Assert.Equal(3, new TotContent("foo").Length);
 
+			// This test crashes Travis CI, so keep it commented out.
 			//var bigStringBuilder = new StringBuilder();
 			//for (int i = 0; i < 536870912; i++)
 			//{
@@ -147,11 +148,11 @@ namespace TorOverTcp.Tests
 			//bigStringBuilder.Append("0");
 			//Assert.Throws<ArgumentOutOfRangeException>(() => new TotContent(bigStringBuilder.ToString()));
 
-			//var x5 = new TotContent();
-			//x5.FromBytes(new byte[] { 3, 0, 0, 0, 1, 2, 3 }, startsWithLength: true);
-			//x5.FromBytes(new byte[] { 0, 0, 0, 0 }, startsWithLength: true);
-			//Assert.Throws<FormatException>(() => x5.FromBytes(new byte[] { 3, 0, 0, 0, 1, 2 }, startsWithLength: true));
-			//Assert.Throws<FormatException>(() => x5.FromBytes(new byte[] { 3, 0, 0 }, startsWithLength: true));
+			var x5 = new TotContent();
+			x5.FromBytes(new byte[] { 3, 0, 0, 0, 1, 2, 3 }, startsWithLength: true);
+			x5.FromBytes(new byte[] { 0, 0, 0, 0 }, startsWithLength: true);
+			Assert.Throws<FormatException>(() => x5.FromBytes(new byte[] { 3, 0, 0, 0, 1, 2 }, startsWithLength: true));
+			Assert.Throws<FormatException>(() => x5.FromBytes(new byte[] { 3, 0, 0 }, startsWithLength: true));
 		}
 
 		[Fact]
