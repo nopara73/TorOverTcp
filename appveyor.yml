@@ -1,0 +1,12 @@
+configuration:
+  - Release
+
+before_build:
+  - dotnet restore
+  
+build_script:
+  - dotnet build
+
+test_script:
+  - cd TorOverTcp.Tests
+  - dotnet test
