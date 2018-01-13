@@ -154,22 +154,22 @@ namespace TorOverTcp.Tests
 			Assert.Throws<FormatException>(() => x5.FromBytes(new byte[] { 3, 0, 0 }, startsWithLength: true));
 		}
 
-		[Fact]
-		public void TotMessageTest()
-		{
-			Assert.Equal(TotPurpose.Ping, TotPing.Instance.Purpose);
-			Assert.Equal(TotPurpose.Pong, TotPong.Instance.Purpose);
+		//[Fact]
+		//public void TotMessageTest()
+		//{
+		//	Assert.Equal(TotPurpose.Ping, TotPing.Instance.Purpose);
+		//	Assert.Equal(TotPurpose.Pong, TotPong.Instance.Purpose);
 
-			Assert.Equal(TotPurpose.Success, TotResponse.Success.Purpose);
-			Assert.Equal(TotPurpose.BadRequest, TotResponse.BadRequest.Purpose);
-			Assert.Equal(TotPurpose.VersionMismatch, TotResponse.VersionMismatch.Purpose);
-			Assert.Equal(TotPurpose.UnsuccessfulRequest, TotResponse.UnsuccessfulRequest.Purpose);
+		//	Assert.Equal(TotPurpose.Success, TotResponse.Success.Purpose);
+		//	Assert.Equal(TotPurpose.BadRequest, TotResponse.BadRequest.Purpose);
+		//	Assert.Equal(TotPurpose.VersionMismatch, TotResponse.VersionMismatch.Purpose);
+		//	Assert.Equal(TotPurpose.UnsuccessfulRequest, TotResponse.UnsuccessfulRequest.Purpose);
 
-			var x = new TotRequest("status");
+		//	var x = new TotRequest("status");
 
-			Assert.Equal(97, x.GetLastCellFullnessPercentage());
-			Assert.Equal(1, x.GetNumberOfCells());
-			Assert.Equal(499, x.GetNumberOfDummyBytesInLastCell());
-		}
+		//	Assert.Equal(97, x.GetLastCellFullnessPercentage());
+		//	Assert.Equal(1, x.GetNumberOfCells());
+		//	Assert.Equal(499, x.GetNumberOfDummyBytesInLastCell());
+		//}
 	}
 }
