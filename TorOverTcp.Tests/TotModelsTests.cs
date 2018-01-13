@@ -17,43 +17,37 @@ namespace TorOverTcp.Tests
 		}
 
 		[Fact]
-		public void Foo()
+		public void TotVersionTest()
 		{
+			var x = TotVersion.Version1;
+			var x2 = new TotVersion(2);
+			var x3 = new TotVersion(1);
+			var x4 = new TotVersion();
+			x4.FromHex("01");
+			var x5 = new TotVersion();
+			x5.FromByte(1);
 
+			Assert.NotEqual(x, x2);
+			Assert.Equal(x, x3);
+			Assert.Equal(x, x4);
+			Assert.Equal(x, x5);
+
+			new TotVersion(0);
+			new TotVersion(255);
+			Assert.Throws<ArgumentOutOfRangeException>(() =>
+			{
+				new TotVersion(-1);
+			});
+			Assert.Throws<ArgumentOutOfRangeException>(() =>
+			{
+				new TotVersion(256);
+			});
+
+			Assert.Throws<IndexOutOfRangeException>(() =>
+			{
+				new TotVersion().FromHex("1");
+			});
 		}
-
-		//[Fact]
-		//public void TotVersionTest()
-		//{
-		//	var x = TotVersion.Version1;
-		//	var x2 = new TotVersion(2);
-		//	var x3 = new TotVersion(1);
-		//	var x4 = new TotVersion();
-		//	x4.FromHex("01");
-		//	var x5 = new TotVersion();
-		//	x5.FromByte(1);
-
-		//	Assert.NotEqual(x, x2);
-		//	Assert.Equal(x, x3);
-		//	Assert.Equal(x, x4);
-		//	Assert.Equal(x, x5);
-
-		//	new TotVersion(0);
-		//	new TotVersion(255);
-		//	Assert.Throws<ArgumentOutOfRangeException>(() =>
-		//	{
-		//		new TotVersion(-1);
-		//	});
-		//	Assert.Throws<ArgumentOutOfRangeException>(() =>
-		//	{
-		//		new TotVersion(256);
-		//	});
-
-		//	Assert.Throws<IndexOutOfRangeException>(() =>
-		//	{
-		//		new TotVersion().FromHex("1");
-		//	});
-		//}
 
 		//[Fact]
 		//public void TotMessageTypeTest()
