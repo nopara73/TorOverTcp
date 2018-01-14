@@ -32,7 +32,7 @@ namespace TorOverTcp.Tests
 				await server.StartAsync();
 
 				using (var tcpClient = new TcpClient())
-				using(var tcpClient2 = new TcpClient())
+				using (var tcpClient2 = new TcpClient())
 				{
 					Assert.Throws<ConnectionException>(() => new TotClient(tcpClient));
 
@@ -55,7 +55,7 @@ namespace TorOverTcp.Tests
 							thrownSocketExceptionFactoryExtendedSocketException = true;
 						}
 					}
-					catch(Exception ex) when (ex.Message.StartsWith("Connection refused"))
+					catch (Exception ex) when (ex.Message.StartsWith("Connection refused"))
 					{
 						if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 						{
@@ -63,12 +63,20 @@ namespace TorOverTcp.Tests
 						}
 					}
 					Assert.True(thrownSocketExceptionFactoryExtendedSocketException);
-					
-					server = new TotServer(serverEndPoint);
-					await server.StartAsync();
 
-					await tcpClient2.ConnectAsync(serverEndPoint.Address, serverEndPoint.Port);
-					var totClient2 = new TotClient(tcpClient2);
+					server = new TotServer(serverEndPoint);
+
+					if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+					{
+						await server.StartAsync();
+
+						await tcpClient2.ConnectAsync(serverEndPoint.Address, serverEndPoint.Port);
+						var totClient2 = new TotClient(tcpClient2);
+					}
+					else // on non-windows platforms this is not possible (address already in use
+					{
+						await Assert.ThrowsAsync<SocketException>(async () => await server.StartAsync());
+					}
 				}
 			}
 			finally
