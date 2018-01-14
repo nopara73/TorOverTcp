@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using TorOverTcp.Exceptions;
@@ -19,7 +20,7 @@ namespace TorOverTcp.Tests
 		}
 
 		[Fact]
-		public async Task SendRequesAsync()
+		public async Task CanInitializeAsync()
 		{
 			Assert.Throws<ArgumentNullException>(() => new TotServer(null));
 
@@ -49,7 +50,17 @@ namespace TorOverTcp.Tests
 					// this will be the uncatchable SocketExceptionFactory+ExtendedSocketException
 					catch (Exception ex) when (ex.Message.StartsWith("No connection could be made because the target machine actively refused it"))
 					{
-						thrownSocketExceptionFactoryExtendedSocketException = true;
+						if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+						{
+							thrownSocketExceptionFactoryExtendedSocketException = true;
+						}
+					}
+					catch(Exception ex) when (ex.Message.StartsWith("Connection refused"))
+					{
+						if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+						{
+							thrownSocketExceptionFactoryExtendedSocketException = true;
+						}
 					}
 					Assert.True(thrownSocketExceptionFactoryExtendedSocketException);
 					
