@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace TorOverTcp
 {
 	public class TotServer
-    {
+	{
 		public TcpListener TcpListener { get; }
 		private AsyncLock InitLock { get; }
 
@@ -30,14 +30,16 @@ namespace TorOverTcp
 			using (InitLock.Lock())
 			{
 				TcpListener = new TcpListener(bindToEndPoint);
-				
+
 				ClientsLock = new AsyncLock();
 
 				using (ClientsLock.Lock())
 				{
 					Clients = new List<TotClient>();
 				}
-			}			
+
+				AcceptTcpClientsTask = null;
+			}
 		}
 
 		public async Task StartAsync()
@@ -51,8 +53,7 @@ namespace TorOverTcp
 				Logger.LogInfo<TotServer>("Server started.");
 			}
 		}
-		
-		/// <param name="cancel">It usually isn't enough to cancel this task, after cancel TcpListener.Stop() must be called.</param>
+
 		private async Task AcceptTcpClientsAsync()
 		{
 			while (true)
@@ -67,7 +68,7 @@ namespace TorOverTcp
 						Clients.Add(totClient);
 					}
 				}
-				catch(ObjectDisposedException ex)
+				catch (ObjectDisposedException ex)
 				{
 					// If TcpListener.Stop() is called, this exception will be triggered.
 					Logger.LogInfo<TotServer>("Server stopped accepting incoming connections.");
@@ -84,37 +85,34 @@ namespace TorOverTcp
 
 		public async Task StopAsync()
 		{
-			using (await InitLock.LockAsync().ConfigureAwait(false))
+
+			try
 			{
-				try
+				using (await InitLock.LockAsync().ConfigureAwait(false))
 				{
 					TcpListener.Stop();
 
-					await AcceptTcpClientsTask.ConfigureAwait(false);
+					if (AcceptTcpClientsTask != null)
+					{
+						await AcceptTcpClientsTask.ConfigureAwait(false);
+					}
 
 					using (await ClientsLock.LockAsync().ConfigureAwait(false))
 					{
 						foreach (var client in Clients)
 						{
-							try
-							{
-								client.TcpClient.Dispose();
-							}
-							catch (Exception ex)
-							{
-								Logger.LogWarning<TotServer>(ex, LogLevel.Debug);
-							}
+							await client.StopAsync().ConfigureAwait(false);
 						}
 					}
 				}
-				catch(Exception ex)
-				{
-					Logger.LogWarning<TotServer>(ex, LogLevel.Debug);
-				}
-				finally
-				{
-					Logger.LogInfo<TotServer>("Server stopped.");
-				}
+			}
+			catch (Exception ex)
+			{
+				Logger.LogWarning<TotServer>(ex, LogLevel.Debug);
+			}
+			finally
+			{
+				Logger.LogInfo<TotServer>("Server stopped.");
 			}
 		}
 	}

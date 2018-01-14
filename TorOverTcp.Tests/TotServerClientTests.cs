@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using TorOverTcp.Exceptions;
 using Xunit;
@@ -27,62 +28,95 @@ namespace TorOverTcp.Tests
 			var serverEndPoint = new IPEndPoint(IPAddress.Loopback, 5282);
 			var server = new TotServer(serverEndPoint);
 
+			await server.StopAsync(); // make sure calling stop doesn't throw exception
+
+			var tcpClient = new TcpClient();
+			var tcpClient2 = new TcpClient();
+			var tcpClient3 = new TcpClient();
+			var tcpClient4 = new TcpClient();
 			try
 			{
 				await server.StartAsync();
 
-				using (var tcpClient = new TcpClient())
-				using (var tcpClient2 = new TcpClient())
+				Assert.Throws<ConnectionException>(() => new TotClient(tcpClient));
+
+				await tcpClient.ConnectAsync(serverEndPoint.Address, serverEndPoint.Port);
+				await tcpClient3.ConnectAsync(serverEndPoint.Address, serverEndPoint.Port);
+				await tcpClient4.ConnectAsync(serverEndPoint.Address, serverEndPoint.Port);
+				var totClient3 = new TotClient(tcpClient3);
+				var totClient4 = new TotClient(tcpClient4);
+				await totClient4.StartAsync();
+				await totClient4.StopAsync();
+
+				await server.StopAsync();
+
+				// tcpClient doesn't know if the server has stopped, so it will work
+				var totClient = new TotClient(tcpClient);
+				await totClient3.StopAsync(); // make sure it doesn't throw exception
+				Assert.Throws<ConnectionException>(() => totClient3 = new TotClient(tcpClient3));
+
+				await totClient.StartAsync(); // Start will not fail, but rather retry periodically
+				totClient.Disconnected += TotClient_Disconnected_CanInitializeAsync;
+
+				while(0 == Interlocked.Read(ref _totClient_Disconnected_CanInitializeAsyncCalled))
 				{
-					Assert.Throws<ConnectionException>(() => new TotClient(tcpClient));
+					await Task.Delay(10);
+				}
 
-					await tcpClient.ConnectAsync(serverEndPoint.Address, serverEndPoint.Port);
+				totClient.Disconnected -= TotClient_Disconnected_CanInitializeAsync;
+				await totClient.StopAsync();
 
-					await server.StopAsync();
-
-					// tcpClient doesn't know if the server has stopped, so it will work
-					var totClient = new TotClient(tcpClient);
-					var thrownSocketExceptionFactoryExtendedSocketException = false;
-					try
-					{
-						await tcpClient2.ConnectAsync(serverEndPoint.Address, serverEndPoint.Port);
-					}
-					// this will be the uncatchable SocketExceptionFactory+ExtendedSocketException
-					catch (Exception ex) when (ex.Message.StartsWith("No connection could be made because the target machine actively refused it"))
-					{
-						if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-						{
-							thrownSocketExceptionFactoryExtendedSocketException = true;
-						}
-					}
-					catch (Exception ex) when (ex.Message.StartsWith("Connection refused"))
-					{
-						if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-						{
-							thrownSocketExceptionFactoryExtendedSocketException = true;
-						}
-					}
-					Assert.True(thrownSocketExceptionFactoryExtendedSocketException);
-
-					server = new TotServer(serverEndPoint);
-
+				var thrownSocketExceptionFactoryExtendedSocketException = false;
+				try
+				{
+					await tcpClient2.ConnectAsync(serverEndPoint.Address, serverEndPoint.Port);
+				}
+				// this will be the uncatchable SocketExceptionFactory+ExtendedSocketException
+				catch (Exception ex) when (ex.Message.StartsWith("No connection could be made because the target machine actively refused it"))
+				{
 					if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 					{
-						await server.StartAsync();
-
-						await tcpClient2.ConnectAsync(serverEndPoint.Address, serverEndPoint.Port);
-						var totClient2 = new TotClient(tcpClient2);
+						thrownSocketExceptionFactoryExtendedSocketException = true;
 					}
-					else // on non-windows platforms this is not possible (address already in use
+				}
+				catch (Exception ex) when (ex.Message.StartsWith("Connection refused"))
+				{
+					if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 					{
-						await Assert.ThrowsAsync<SocketException>(async () => await server.StartAsync());
+						thrownSocketExceptionFactoryExtendedSocketException = true;
 					}
+				}
+				Assert.True(thrownSocketExceptionFactoryExtendedSocketException);
+
+				server = new TotServer(serverEndPoint);
+
+				if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+				{
+					await server.StartAsync();
+
+					await tcpClient2.ConnectAsync(serverEndPoint.Address, serverEndPoint.Port);
+					var totClient2 = new TotClient(tcpClient2);
+					await totClient2.StartAsync();
+					await totClient2.StopAsync();
+				}
+				else // on non-windows platforms this is not possible (address already in use
+				{
+					await Assert.ThrowsAsync<SocketException>(async () => await server.StartAsync());
 				}
 			}
 			finally
 			{
 				await server.StopAsync();
 			}
+		}
+
+		private long _totClient_Disconnected_CanInitializeAsyncCalled = 0;
+		private void TotClient_Disconnected_CanInitializeAsync(object sender, Exception e)
+		{
+			Assert.IsType<TotClient>(sender);
+			Assert.IsType<ConnectionException>(e);
+
+			Interlocked.Increment(ref _totClient_Disconnected_CanInitializeAsyncCalled);
 		}
 	}
 }
