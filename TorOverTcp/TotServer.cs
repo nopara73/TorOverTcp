@@ -17,7 +17,6 @@ namespace TorOverTcp
 		private AsyncLock InitLock { get; }
 
 		private Task AcceptTcpClientsTask { get; set; }
-		private CancellationTokenSource AcceptTcpClientsTaskCancel { get; }
 
 		private List<TotClient> Clients { get; }
 		private AsyncLock ClientsLock { get; }
@@ -31,8 +30,7 @@ namespace TorOverTcp
 			using (InitLock.Lock())
 			{
 				TcpListener = new TcpListener(bindToEndPoint);
-
-				AcceptTcpClientsTaskCancel = new CancellationTokenSource();
+				
 				ClientsLock = new AsyncLock();
 
 				using (ClientsLock.Lock())
@@ -48,24 +46,19 @@ namespace TorOverTcp
 			{
 				TcpListener.Start();
 
-				AcceptTcpClientsTask = AcceptTcpClientsAsync(AcceptTcpClientsTaskCancel.Token);
+				AcceptTcpClientsTask = AcceptTcpClientsAsync();
 
 				Logger.LogInfo<TotServer>("Server started.");
 			}
 		}
 		
 		/// <param name="cancel">It usually isn't enough to cancel this task, after cancel TcpListener.Stop() must be called.</param>
-		private async Task AcceptTcpClientsAsync(CancellationToken cancel)
+		private async Task AcceptTcpClientsAsync()
 		{
-			Guard.NotNull(nameof(cancel), cancel);
-			if (cancel == CancellationToken.None) throw new ArgumentException($"{nameof(cancel)} cannot be CancellationToken.None");
-
-			while(true)
+			while (true)
 			{
 				try
 				{
-					cancel.ThrowIfCancellationRequested();
-
 					var tcpClient = await TcpListener.AcceptTcpClientAsync().ConfigureAwait(false); // TcpListener.Stop() will trigger ObjectDisposedException
 					var totClient = new TotClient(tcpClient);
 
@@ -74,25 +67,13 @@ namespace TorOverTcp
 						Clients.Add(totClient);
 					}
 				}
-				catch(OperationCanceledException ex)
-				{
-					Logger.LogInfo<TotServer>("Server stopped accepting incoming connections.");
-					Logger.LogTrace<TotServer>(ex);
-					return;
-				}
 				catch(ObjectDisposedException ex)
 				{
 					// If TcpListener.Stop() is called, this exception will be triggered.
-					if(cancel.IsCancellationRequested)
-					{
-						Logger.LogInfo<TotServer>("Server stopped accepting incoming connections.");
-						Logger.LogTrace<TotServer>(ex);
-					}
-					else // exception was triggered by something else
-					{
-						Logger.LogWarning<TotServer>(ex, LogLevel.Debug);
-					}
-					
+					Logger.LogInfo<TotServer>("Server stopped accepting incoming connections.");
+					Logger.LogTrace<TotServer>(ex);
+					return;
+
 				}
 				catch (Exception ex)
 				{
@@ -107,11 +88,9 @@ namespace TorOverTcp
 			{
 				try
 				{
-					AcceptTcpClientsTaskCancel.Cancel();
 					TcpListener.Stop();
 
 					await AcceptTcpClientsTask.ConfigureAwait(false);
-					AcceptTcpClientsTaskCancel.Dispose();
 
 					using (await ClientsLock.LockAsync().ConfigureAwait(false))
 					{
