@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
+using TorOverTcp.Exceptions;
 
 namespace TorOverTcp
 {
@@ -16,7 +17,7 @@ namespace TorOverTcp
 			Guard.NotNull(nameof(connectedClient), connectedClient);
 			if(!connectedClient.Connected)
 			{
-				throw new ArgumentException($"{nameof(connectedClient)} is not connected.");
+				throw new ConnectionException($"{nameof(connectedClient)} is not connected.");
 			}
 			TcpClient = connectedClient;
 		}
