@@ -8,6 +8,8 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using TorOverTcp.Exceptions;
+using TorOverTcp.TorOverTcp.Models.Fields;
+using TorOverTcp.TorOverTcp.Models.Messages;
 
 namespace TorOverTcp
 {
@@ -20,6 +22,8 @@ namespace TorOverTcp
 
 		public event EventHandler<Exception> Disconnected;
 		private void OnDisconnected(Exception exception) => Disconnected?.Invoke(this, exception);
+
+		private AsyncLock StreamWriterLock { get; }
 
 		/// <param name="connectedClient">Must be already connected.</param>
 		public TotClient(TcpClient connectedClient)
@@ -37,6 +41,7 @@ namespace TorOverTcp
 				TcpClient = connectedClient;
 
 				ListenNetworkStreamTask = null;
+				StreamWriterLock = new AsyncLock();
 			}
 		}
 
@@ -66,7 +71,7 @@ namespace TorOverTcp
 					// if we could fit everything into our buffer, then we get our message
 					if (!stream.DataAvailable)
 					{
-						ProcessMessageBytes(buffer.Take(receiveCount).ToArray());
+						ProcessMessageBytesAsync(buffer.Take(receiveCount).ToArray());
 					}
 
 					// while we have data available, start building a bytearray
@@ -83,7 +88,7 @@ namespace TorOverTcp
 						builder.Append(buffer.Take(receiveCount).ToArray());
 					}
 
-					ProcessMessageBytes(builder.ToArray());
+					ProcessMessageBytesAsync(builder.ToArray());
 				}
 				catch (ObjectDisposedException ex)
 				{
@@ -110,11 +115,32 @@ namespace TorOverTcp
 			}
 		}
 
-		private void ProcessMessageBytes(byte[] bytes)
+		// async void is fine, because in case of exception it logs and it should not be awaited
+		private async void ProcessMessageBytesAsync(byte[] bytes)
 		{
 			try
 			{
+				Guard.NotNull(nameof(bytes), bytes);
 
+				using (await StreamWriterLock.LockAsync().ConfigureAwait(false))
+				{
+					var messageType = new TotMessageType();
+					messageType.FromByte(bytes[1]);
+
+					var stream = TcpClient.GetStream();
+
+					if (messageType == TotMessageType.Ping)
+					{
+						var request = new TotPing();
+						request.FromBytes(bytes);
+
+						var responseBytes = TotPong.Instance.ToBytes();
+						
+						await stream.WriteAsync(responseBytes, 0, responseBytes.Length).ConfigureAwait(false);
+						await stream.FlushAsync().ConfigureAwait(false);
+						return;						
+					}
+				}
 			}
 			catch (Exception ex)
 			{
@@ -122,6 +148,23 @@ namespace TorOverTcp
 				Logger.LogWarning<TotClient>(exception, LogLevel.Debug);
 			}
 		}
+
+		#region Requests
+
+		public async Task PingAsync()
+		{
+			using (await StreamWriterLock.LockAsync().ConfigureAwait(false))
+			{
+				var responseBytes = TotPong.Instance.ToBytes();
+
+				var stream = TcpClient.GetStream();
+
+				await stream.WriteAsync(responseBytes, 0, responseBytes.Length).ConfigureAwait(false);
+				await stream.FlushAsync().ConfigureAwait(false);
+			}
+		}
+
+		#endregion
 
 		/// <summary>
 		/// Also disposes the underlying TcpClient
