@@ -3,6 +3,7 @@ using DotNetEssentials.Logging;
 using Nito.AsyncEx;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -53,12 +54,36 @@ namespace TorOverTcp
 			{
 				try
 				{
-					var buffer = new byte[1024];
-					var receiveCount = await TcpClient.GetStream().ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false); // TcpClient.Disposep() will trigger ObjectDisposedException
+					var bufferSize = TcpClient.ReceiveBufferSize;
+					var buffer = new byte[bufferSize];
+					var stream = TcpClient.GetStream();
+					var receiveCount = await stream.ReadAsync(buffer, 0, bufferSize).ConfigureAwait(false); // TcpClient.Disposep() will trigger ObjectDisposedException
 					if (receiveCount <= 0)
 					{
 						throw new ConnectionException($"Client lost connection.");
 					}
+
+					// if we could fit everything into our buffer, then we get our message
+					if (!stream.DataAvailable)
+					{
+						ProcessMessageBytes(buffer.Take(receiveCount).ToArray());
+					}
+
+					// while we have data available, start building a bytearray
+					var builder = new ByteArrayBuilder();
+					builder.Append(buffer.Take(receiveCount).ToArray());
+					while (stream.DataAvailable)
+					{
+						Array.Clear(buffer, 0, buffer.Length);
+						receiveCount = await stream.ReadAsync(buffer, 0, bufferSize).ConfigureAwait(false);
+						if (receiveCount <= 0)
+						{
+							throw new ConnectionException($"Client lost connection.");
+						}
+						builder.Append(buffer.Take(receiveCount).ToArray());
+					}
+
+					ProcessMessageBytes(builder.ToArray());
 				}
 				catch (ObjectDisposedException ex)
 				{
@@ -82,6 +107,19 @@ namespace TorOverTcp
 					OnDisconnected(ex);
 					await Task.Delay(3000).ConfigureAwait(false); // wait 3 sec, then retry
 				}
+			}
+		}
+
+		private void ProcessMessageBytes(byte[] bytes)
+		{
+			try
+			{
+
+			}
+			catch (Exception ex)
+			{
+				var exception = new TotRequestException("Couldn't process the received message bytes.", ex);
+				Logger.LogWarning<TotClient>(exception, LogLevel.Debug);
 			}
 		}
 
