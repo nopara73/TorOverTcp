@@ -34,9 +34,9 @@ Unless otherwise noted, the decimal numbers appearing in packet-format diagrams 
 
 ## 2. Message Format
 
-| Version | MessageType | PurposeLength | Purpose | ContentLength | Content      |
-|---------|-------------|---------------|---------|---------------|--------------|
-| X'01'   | 1           | 1             | 0-255   | 4             | 0-536870912 |
+| Version | MessageType | MessageId | PurposeLength | Purpose | ContentLength | Content      |
+|---------|-------------|-----------|---------------|---------|---------------|--------------|
+| X'01'   | 1           | 2         | 1             | 0-255   | 4             | 0-536870912  |
 
 ### 2.1 MessageType
 
@@ -47,17 +47,21 @@ Unless otherwise noted, the decimal numbers appearing in packet-format diagrams 
 `X'06'` - `Ping`: A `Pong` MUST follow it.  
 `X'07'` - `Pong`: A `Ping` MUST precede it.
 
-### 2.2 Purpose
+### 2.2 MessageId
 
-#### 2.2.1 Purpose of Request
+2 random bytes for `Request`, `SubscribeRequest` and `Ping`. `Response` and `Pong` MUST have the same value as the request it is answering to. `MessageId` of `Notification` is arbitrary.
+
+### 2.3 Purpose
+
+#### 2.3.1 Purpose of Request
 
 The `Purpose` of `Request` is arbitrary.
 
-#### 2.2.1 Purpose of SubscribeRequest and Notification
+#### 2.3.1 Purpose of SubscribeRequest and Notification
 
 The `Purpose` of `SubscribeRequest` and `Notification` is arbitrary, but clients and servers MUST implement the same `Purpose` for all three.
 
-#### 2.2.3 Purpose of Response
+#### 2.3.3 Purpose of Response
 
 `X'00'` - `Success`  
 `X'01'` - `BadRequest`: The request was malformed.  
@@ -68,15 +72,15 @@ The `Purpose` of `SubscribeRequest` and `Notification` is arbitrary, but clients
 `BadRequest` is issued for example, if the specified `ContentLength` does not match the actual length of the content, an arbitrary, user defined parameter does not match the expected format, or the `Purpose` of a `SubscribeRequest` is not recognized by the server.  
 `UnsuccessfulRequest` is issued for example, if the server does not have the requested data available to `Response`.
 
-#### 2.2.4 Purpose of Ping and Pong
+#### 2.3.4 Purpose of Ping and Pong
 
 The `Purpose` field of `Ping` MUST be `ping` and the `Purpose` field of `Pong` MUST be `pong`.
 
-### 2.3 Content
+### 2.4 Content
 
 `536870912` byte is 512MB and the maximum number of bytes the `Content` field can hold. At deserialization, compliant implementations MUST validate the `ContentLength` field is within range. 
 
-#### 2.3.1 Content as Error Details
+#### 2.4.1 Content as Error Details
 If the `Response` is other than `Success`, the `Content` MAY hold the details of the error.  
 
 * The server SHOULD use grammatically correct error messages.
