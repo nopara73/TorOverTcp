@@ -63,6 +63,7 @@ namespace TorOverTcp
 					var tcpClient = await TcpListener.AcceptTcpClientAsync().ConfigureAwait(false); // TcpListener.Stop() will trigger ObjectDisposedException
 					var totClient = new TotClient(tcpClient);
 
+					await totClient.StartAsync().ConfigureAwait(false);
 					using (await ClientsLock.LockAsync().ConfigureAwait(false))
 					{
 						Clients.Add(totClient);

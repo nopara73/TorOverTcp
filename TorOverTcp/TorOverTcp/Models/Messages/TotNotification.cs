@@ -26,7 +26,7 @@ namespace TorOverTcp.TorOverTcp.Models.Messages
 		}
 
 		/// <param name="purpose">The Purpose of SubscribeRequest and Notification is arbitrary, but clients and servers MUST implement the same Purpose for all three.</param>
-		public TotNotification(string purpose, TotContent content) : base(TotMessageType.Notification, new TotPurpose(purpose), content)
+		public TotNotification(string purpose, TotContent content) : base(TotMessageType.Notification, new TotMessageId(0), new TotPurpose(purpose), content)
 		{
 
 		}

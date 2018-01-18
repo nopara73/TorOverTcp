@@ -26,7 +26,7 @@ namespace TorOverTcp.TorOverTcp.Models.Messages
 		}
 
 		/// <param name="purpose">The Purpose of Request is arbitrary.</param>
-		public TotRequest(string purpose, TotContent content) : base(TotMessageType.Request, new TotPurpose(purpose), content)
+		public TotRequest(string purpose, TotContent content) : base(TotMessageType.Request, TotMessageId.Random, new TotPurpose(purpose), content)
 		{
 
 		}

@@ -16,6 +16,8 @@ namespace TorOverTcp.TorOverTcp.Models.Messages.Bases
 
 		public TotMessageType MessageType { get; set; }
 
+		public TotMessageId MessageId { get; set; }
+
 		public TotPurpose Purpose { get; set; }
 
 		public TotContent Content { get; set; }
@@ -29,10 +31,11 @@ namespace TorOverTcp.TorOverTcp.Models.Messages.Bases
 
 		}
 
-		protected TotMessageBase(TotMessageType messageType, TotPurpose purpose, TotContent content)
+		protected TotMessageBase(TotMessageType messageType, TotMessageId messageId, TotPurpose purpose, TotContent content)
 		{
 			Version = TotVersion.Version1;
 			MessageType = Guard.NotNull(nameof(messageType), messageType);
+			MessageId = Guard.NotNull(nameof(messageId), messageId);
 			Purpose = purpose ?? TotPurpose.Empty;
 			Content = content ?? TotContent.Empty;
 		}
@@ -79,20 +82,23 @@ namespace TorOverTcp.TorOverTcp.Models.Messages.Bases
 			MessageType = new TotMessageType();
 			MessageType.FromByte(bytes[1]);
 
-			int purposeLength = bytes[2];
-			Purpose = new TotPurpose();
-			Purpose.FromBytes(bytes.Skip(2).Take(purposeLength + 1).ToArray(), startsWithLength: true);
+			MessageId = new TotMessageId();
+			MessageId.FromBytes(bytes.Skip(2).Take(2).ToArray());
 
-			int contentLength = BitConverter.ToInt32(bytes.Skip(3 + purposeLength).Take(4).ToArray(), 0);
+			int purposeLength = bytes[4];
+			Purpose = new TotPurpose();
+			Purpose.FromBytes(bytes.Skip(4).Take(purposeLength + 1).ToArray(), startsWithLength: true);
+
+			int contentLength = BitConverter.ToInt32(bytes.Skip(5 + purposeLength).Take(4).ToArray(), 0);
 			Content = new TotContent();
-			Content.FromBytes(bytes.Skip(3 + purposeLength).ToArray(), startsWithLength: true);
+			Content.FromBytes(bytes.Skip(5 + purposeLength).ToArray(), startsWithLength: true);
 		}
 
-		public override byte[] ToBytes() => ByteHelpers.Combine(new byte[] { Version.ToByte(), MessageType.ToByte() }, Purpose.ToBytes(startsWithLength: true), Content.ToBytes(startsWithLength: true));
+		public override byte[] ToBytes() => ByteHelpers.Combine(new byte[] { Version.ToByte(), MessageType.ToByte() }, MessageId.ToBytes() , Purpose.ToBytes(startsWithLength: true), Content.ToBytes(startsWithLength: true));
 
 		public override string ToString()
 		{
-			return $"{Version} {MessageType} {Purpose.Length} {Purpose} {Content.Length} {Content}";
+			return $"{Version} {MessageType} {MessageId} {Purpose.Length} {Purpose} {Content.Length} {Content}";
 		}
 
 		#endregion

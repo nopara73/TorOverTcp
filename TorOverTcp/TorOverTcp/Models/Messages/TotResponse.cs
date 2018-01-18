@@ -15,19 +15,19 @@ namespace TorOverTcp.TorOverTcp.Models.Messages
 	{
 		#region Statics
 
-		public static TotResponse Success => new TotResponse(TotPurpose.Success);
+		public static TotResponse Success(TotMessageId messageId) => new TotResponse(TotPurpose.Success, messageId);
 
 		/// <summary>
 		/// The request was malformed. BadRequest SHOULD be issued in case of client side errors.
 		/// </summary>
-		public static TotResponse BadRequest => new TotResponse(TotPurpose.BadRequest);
+		public static TotResponse BadRequest(TotMessageId messageId) => new TotResponse(TotPurpose.BadRequest, messageId);
 
-		public static TotResponse VersionMismatch => new TotResponse(TotPurpose.VersionMismatch);
+		public static TotResponse VersionMismatch(TotMessageId messageId) => new TotResponse(TotPurpose.VersionMismatch, messageId);
 
 		/// <summary>
 		/// The server was not able to execute the Request properly. UnsuccessfulReqeust SHOULD be issued in case of server side errors.
 		/// </summary>
-		public static TotResponse UnsuccessfulRequest => new TotResponse(TotPurpose.UnsuccessfulRequest);
+		public static TotResponse UnsuccessfulRequest(TotMessageId messageId) => new TotResponse(TotPurpose.UnsuccessfulRequest, messageId);
 
 		#endregion
 
@@ -39,13 +39,13 @@ namespace TorOverTcp.TorOverTcp.Models.Messages
 		}
 
 		/// <param name="purpose">Success, BadRequest, VersionMismatch, UnsuccessfulRequest</param>
-		public TotResponse(TotPurpose purpose) : this(purpose, TotContent.Empty)
+		public TotResponse(TotPurpose purpose, TotMessageId messageId) : this(purpose, TotContent.Empty, messageId)
 		{
 
 		}
 
 		/// <param name="purpose">Success, BadRequest, VersionMismatch, UnsuccessfulRequest</param>
-		public TotResponse(TotPurpose purpose, TotContent content) : base(TotMessageType.Response, purpose, content)
+		public TotResponse(TotPurpose purpose, TotContent content, TotMessageId messageId) : base(TotMessageType.Response, messageId,  purpose, content)
 		{
 			Guard.NotNull(nameof(purpose), purpose);
 			if(purpose != TotPurpose.Success 

@@ -14,7 +14,7 @@ namespace TorOverTcp.TorOverTcp.Models.Messages
     {
 		#region Statics
 
-		public static TotPong Instance => new TotPong(TotContent.Empty);
+		public static TotPong Instance(TotMessageId messageId) => new TotPong(TotContent.Empty, messageId);
 
 		#endregion
 		
@@ -25,7 +25,7 @@ namespace TorOverTcp.TorOverTcp.Models.Messages
 
 		}
 
-		public TotPong(TotContent content) : base(TotMessageType.Pong, TotPurpose.Pong, content)
+		public TotPong(TotContent content, TotMessageId messageId) : base(TotMessageType.Pong, messageId, TotPurpose.Pong, content)
 		{
 
 		}

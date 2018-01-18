@@ -159,18 +159,18 @@ namespace TorOverTcp.Tests
 		public void TotMessageTest()
 		{
 			Assert.Equal(TotPurpose.Ping, TotPing.Instance.Purpose);
-			Assert.Equal(TotPurpose.Pong, TotPong.Instance.Purpose);
+			Assert.Equal(TotPurpose.Pong, TotPong.Instance(TotMessageId.Random).Purpose);
 
-			Assert.Equal(TotPurpose.Success, TotResponse.Success.Purpose);
-			Assert.Equal(TotPurpose.BadRequest, TotResponse.BadRequest.Purpose);
-			Assert.Equal(TotPurpose.VersionMismatch, TotResponse.VersionMismatch.Purpose);
-			Assert.Equal(TotPurpose.UnsuccessfulRequest, TotResponse.UnsuccessfulRequest.Purpose);
+			Assert.Equal(TotPurpose.Success, TotResponse.Success(TotMessageId.Random).Purpose);
+			Assert.Equal(TotPurpose.BadRequest, TotResponse.BadRequest(TotMessageId.Random).Purpose);
+			Assert.Equal(TotPurpose.VersionMismatch, TotResponse.VersionMismatch(TotMessageId.Random).Purpose);
+			Assert.Equal(TotPurpose.UnsuccessfulRequest, TotResponse.UnsuccessfulRequest(TotMessageId.Random).Purpose);
 
 			var x = new TotRequest("status");
 
 			Assert.Equal(97, x.GetLastCellFullnessPercentage());
 			Assert.Equal(1, x.GetNumberOfCells());
-			Assert.Equal(499, x.GetNumberOfDummyBytesInLastCell());
+			Assert.Equal(497, x.GetNumberOfDummyBytesInLastCell());
 		}
 	}
 }

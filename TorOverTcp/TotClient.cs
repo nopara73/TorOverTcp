@@ -3,9 +3,11 @@ using DotNetEssentials.Logging;
 using Nito.AsyncEx;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using TorOverTcp.Exceptions;
 using TorOverTcp.TorOverTcp.Models.Fields;
@@ -25,6 +27,12 @@ namespace TorOverTcp
 
 		private AsyncLock StreamWriterLock { get; }
 
+		/// <summary>
+		/// 0: doesn't, 1: does, use with interlocked
+		/// </summary>
+		private long _waitForResponse;
+		private volatile byte[] _currentResposne;
+
 		/// <param name="connectedClient">Must be already connected.</param>
 		public TotClient(TcpClient connectedClient)
 		{
@@ -42,6 +50,8 @@ namespace TorOverTcp
 
 				ListenNetworkStreamTask = null;
 				StreamWriterLock = new AsyncLock();
+				Interlocked.Exchange(ref _waitForResponse, 0);
+				_currentResposne = null;
 			}
 		}
 
@@ -100,7 +110,14 @@ namespace TorOverTcp
 				}
 				catch (ConnectionException ex)
 				{
-					Logger.LogWarning<TotClient>(ex, LogLevel.Debug);
+					Logger.LogDebug<TotClient>(ex, LogLevel.Debug);
+
+					OnDisconnected(ex);
+					await Task.Delay(3000).ConfigureAwait(false); // wait 3 sec, then retry
+				}
+				catch (IOException ex)
+				{
+					Logger.LogDebug<TotClient>(ex, LogLevel.Debug);
 
 					OnDisconnected(ex);
 					await Task.Delay(3000).ConfigureAwait(false); // wait 3 sec, then retry
@@ -122,6 +139,13 @@ namespace TorOverTcp
 			{
 				Guard.NotNull(nameof(bytes), bytes);
 
+				if (Interlocked.Read(ref _waitForResponse) == 1)
+				{
+					if (_currentResposne != null) throw new InvalidOperationException($"{nameof(_currentResposne)} must be null.");
+					_currentResposne = bytes;
+					return;
+				}
+
 				using (await StreamWriterLock.LockAsync().ConfigureAwait(false))
 				{
 					var messageType = new TotMessageType();
@@ -134,7 +158,7 @@ namespace TorOverTcp
 						var request = new TotPing();
 						request.FromBytes(bytes);
 
-						var responseBytes = TotPong.Instance.ToBytes();
+						var responseBytes = TotPong.Instance(request.MessageId).ToBytes();
 						
 						await stream.WriteAsync(responseBytes, 0, responseBytes.Length).ConfigureAwait(false);
 						await stream.FlushAsync().ConfigureAwait(false);
@@ -155,16 +179,44 @@ namespace TorOverTcp
 		{
 			using (await StreamWriterLock.LockAsync().ConfigureAwait(false))
 			{
-				var responseBytes = TotPong.Instance.ToBytes();
+				var ping = TotPing.Instance;
+				var requestBytes = ping.ToBytes();
 
 				var stream = TcpClient.GetStream();
 
-				await stream.WriteAsync(responseBytes, 0, responseBytes.Length).ConfigureAwait(false);
-				await stream.FlushAsync().ConfigureAwait(false);
+				await stream.WriteAsync(requestBytes, 0, requestBytes.Length).ConfigureAwait(false);
+				try
+				{
+					Interlocked.Exchange(ref _waitForResponse, 1);
+					await stream.FlushAsync().ConfigureAwait(false);
+
+					// todo, needs timeout?
+					while(_currentResposne == null)
+					{
+						await Task.Delay(10).ConfigureAwait(false);
+					}
+
+					var pong = new TotPong();
+					pong.FromBytes(requestBytes);
+					AssertVersion(ping.Version, pong.Version);
+				}
+				finally
+				{
+					_currentResposne = null;
+					Interlocked.Exchange(ref _waitForResponse, 0);
+				}
 			}
 		}
 
 		#endregion
+
+		private static void AssertVersion(TotVersion expected, TotVersion actual)
+		{
+			if (expected != actual)
+			{
+				throw new TotRequestException($"Server responded with wrong version. Expected: {expected}. Actual: {actual}.");
+			}
+		}
 
 		/// <summary>
 		/// Also disposes the underlying TcpClient
@@ -175,7 +227,7 @@ namespace TorOverTcp
 			{
 				using (await InitLock.LockAsync().ConfigureAwait(false))
 				{
-					TcpClient.Dispose();
+					TcpClient?.Dispose();
 
 					if (ListenNetworkStreamTask != null)
 					{

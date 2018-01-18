@@ -25,7 +25,7 @@ namespace TorOverTcp.TorOverTcp.Models.Messages
 
 		}
 
-		public TotPing(TotContent content) : base(TotMessageType.Ping, TotPurpose.Ping, content)
+		public TotPing(TotContent content) : base(TotMessageType.Ping, TotMessageId.Random, TotPurpose.Ping, content)
 		{
 
 		}
