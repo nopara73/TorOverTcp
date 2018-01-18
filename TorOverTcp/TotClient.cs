@@ -2,6 +2,7 @@
 using DotNetEssentials.Logging;
 using Nito.AsyncEx;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -12,6 +13,7 @@ using System.Threading.Tasks;
 using TorOverTcp.Exceptions;
 using TorOverTcp.TorOverTcp.Models.Fields;
 using TorOverTcp.TorOverTcp.Models.Messages;
+using TorOverTcp.TorOverTcp.Models.Messages.Bases;
 
 namespace TorOverTcp
 {
@@ -27,11 +29,7 @@ namespace TorOverTcp
 
 		private AsyncLock StreamWriterLock { get; }
 
-		/// <summary>
-		/// 0: doesn't, 1: does, use with interlocked
-		/// </summary>
-		private long _waitForResponse;
-		private volatile byte[] _currentResposne;
+		public ConcurrentDictionary<TotMessageId, TotMessageBase> ResponseCache { get; }
 
 		/// <param name="connectedClient">Must be already connected.</param>
 		public TotClient(TcpClient connectedClient)
@@ -50,8 +48,7 @@ namespace TorOverTcp
 
 				ListenNetworkStreamTask = null;
 				StreamWriterLock = new AsyncLock();
-				Interlocked.Exchange(ref _waitForResponse, 0);
-				_currentResposne = null;
+				ResponseCache = new ConcurrentDictionary<TotMessageId, TotMessageBase>();
 			}
 		}
 
@@ -139,31 +136,38 @@ namespace TorOverTcp
 			{
 				Guard.NotNull(nameof(bytes), bytes);
 
-				if (Interlocked.Read(ref _waitForResponse) == 1)
+				var messageType = new TotMessageType();
+				messageType.FromByte(bytes[1]);
+
+				if(messageType == TotMessageType.Pong)
 				{
-					if (_currentResposne != null) throw new InvalidOperationException($"{nameof(_currentResposne)} must be null.");
-					_currentResposne = bytes;
+					var response = new TotPong();
+					response.FromBytes(bytes);
+					ResponseCache.TryAdd(response.MessageId, response);
+						
+				}
+				if(messageType == TotMessageType.Response)
+				{
+					var response = new TotResponse();
+					response.FromBytes(bytes);
+					ResponseCache.TryAdd(response.MessageId, response);
 					return;
 				}
 
-				using (await StreamWriterLock.LockAsync().ConfigureAwait(false))
+				var stream = TcpClient.GetStream();
+
+				if (messageType == TotMessageType.Ping)
 				{
-					var messageType = new TotMessageType();
-					messageType.FromByte(bytes[1]);
+					var request = new TotPing();
+					request.FromBytes(bytes);
 
-					var stream = TcpClient.GetStream();
-
-					if (messageType == TotMessageType.Ping)
+					var responseBytes = TotPong.Instance(request.MessageId).ToBytes();
+					using (await StreamWriterLock.LockAsync().ConfigureAwait(false))
 					{
-						var request = new TotPing();
-						request.FromBytes(bytes);
-
-						var responseBytes = TotPong.Instance(request.MessageId).ToBytes();
-						
 						await stream.WriteAsync(responseBytes, 0, responseBytes.Length).ConfigureAwait(false);
 						await stream.FlushAsync().ConfigureAwait(false);
-						return;						
 					}
+					return;
 				}
 			}
 			catch (Exception ex)
@@ -177,35 +181,27 @@ namespace TorOverTcp
 
 		public async Task PingAsync()
 		{
+			var ping = TotPing.Instance;
+			var requestBytes = ping.ToBytes();
+			var messageId = ping.MessageId;
+
+			var stream = TcpClient.GetStream();
+
 			using (await StreamWriterLock.LockAsync().ConfigureAwait(false))
 			{
-				var ping = TotPing.Instance;
-				var requestBytes = ping.ToBytes();
-
-				var stream = TcpClient.GetStream();
-
 				await stream.WriteAsync(requestBytes, 0, requestBytes.Length).ConfigureAwait(false);
-				try
-				{
-					Interlocked.Exchange(ref _waitForResponse, 1);
-					await stream.FlushAsync().ConfigureAwait(false);
-
-					// todo, needs timeout?
-					while(_currentResposne == null)
-					{
-						await Task.Delay(10).ConfigureAwait(false);
-					}
-
-					var pong = new TotPong();
-					pong.FromBytes(requestBytes);
-					AssertVersion(ping.Version, pong.Version);
-				}
-				finally
-				{
-					_currentResposne = null;
-					Interlocked.Exchange(ref _waitForResponse, 0);
-				}
+				await stream.FlushAsync().ConfigureAwait(false);
 			}
+
+			// todo, needs timeout?
+			while (!ResponseCache.ContainsKey(messageId))
+			{
+				await Task.Delay(10).ConfigureAwait(false);
+			}
+
+			var pong = ResponseCache.Single(x => x.Key == messageId).Value as TotPong;
+			ResponseCache.TryRemove(messageId, out TotMessageBase throwAway);
+			AssertVersion(ping.Version, pong.Version);
 		}
 
 		#endregion

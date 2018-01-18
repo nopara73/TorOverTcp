@@ -119,31 +119,31 @@ namespace TorOverTcp.Tests
 			Interlocked.Increment(ref _totClient_Disconnected_CanInitializeAsyncCalled);
 		}
 
-		//[Fact]
-		//public async Task PingPongAsync()
-		//{
-		//	var serverEndPoint = new IPEndPoint(IPAddress.Loopback, 5282);
-		//	var server = new TotServer(serverEndPoint);
-		//	var tcpClient = new TcpClient();
-		//	TotClient totClient = null;
+		[Fact]
+		public async Task PingPongAsync()
+		{
+			var serverEndPoint = new IPEndPoint(IPAddress.Loopback, 5282);
+			var server = new TotServer(serverEndPoint);
+			var tcpClient = new TcpClient();
+			TotClient totClient = null;
 
-		//	try
-		//	{
-		//		await server.StartAsync();
-		//		await tcpClient.ConnectAsync(serverEndPoint.Address, serverEndPoint.Port);
+			try
+			{
+				await server.StartAsync();
+				await tcpClient.ConnectAsync(serverEndPoint.Address, serverEndPoint.Port);
 
-		//		totClient = new TotClient(tcpClient);
+				totClient = new TotClient(tcpClient);
 
-		//		await totClient.StartAsync();
-				
-		//		await totClient.PingAsync();
-		//	}
-		//	finally
-		//	{
-		//		await totClient?.StopAsync();
-		//		tcpClient?.Dispose(); // this is when tcpClient.ConnectAsync fails
-		//		await server.StopAsync();
-		//	}
-		//}
+				await totClient.StartAsync();
+
+				await totClient.PingAsync();
+			}
+			finally
+			{
+				await totClient?.StopAsync();
+				tcpClient?.Dispose(); // this is when tcpClient.ConnectAsync fails
+				await server.StopAsync();
+			}
+		}
 	}
 }
