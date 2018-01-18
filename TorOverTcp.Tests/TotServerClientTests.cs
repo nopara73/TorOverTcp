@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using TorOverTcp.Exceptions;
+using TorOverTcp.TorOverTcp.Models.Fields;
+using TorOverTcp.TorOverTcp.Models.Messages;
 using Xunit;
 
 namespace TorOverTcp.Tests
@@ -222,6 +224,42 @@ namespace TorOverTcp.Tests
 
 				await server.StopAsync();
 			}
+		}
+
+		[Fact]
+		public async Task RespondsAsync()
+		{
+			var serverEndPoint = new IPEndPoint(IPAddress.Loopback, new Random().Next(5000, 5500));
+			var server = new TotServer(serverEndPoint);
+			var tcpClient = new TcpClient();
+			TotClient totClient = null;
+
+			try
+			{
+				await server.StartAsync();
+				server.RequestArrived += RespondsTest_Server_RequestArrivedAsync;
+				await tcpClient.ConnectAsync(serverEndPoint.Address, serverEndPoint.Port);
+
+				totClient = new TotClient(tcpClient);
+
+				await totClient.StartAsync();
+
+				var r1 = await totClient.RequestAsync(new TotRequest("hello"));
+				Assert.Equal(TotPurpose.BadRequest, r1.Purpose);
+			}
+			finally
+			{
+				await totClient?.StopAsync();
+				tcpClient?.Dispose(); // this is when tcpClient.ConnectAsync fails
+				server.RequestArrived -= RespondsTest_Server_RequestArrivedAsync;
+				await server.StopAsync();
+			}
+		}
+
+		private async void RespondsTest_Server_RequestArrivedAsync(object sender, TotRequest request)
+		{
+			var client = sender as TotClient;
+			await client.SendAsync(TotResponse.BadRequest(request.MessageId).ToBytes());
 		}
 	}
 }

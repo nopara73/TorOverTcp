@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using TorOverTcp.TorOverTcp.Models.Messages;
 
 namespace TorOverTcp
 {
@@ -20,6 +21,9 @@ namespace TorOverTcp
 
 		private List<TotClient> Clients { get; }
 		private AsyncLock ClientsLock { get; }
+
+		public event EventHandler<TotRequest> RequestArrived;
+		private void OnRequestArrived(TotClient client, TotRequest request) => RequestArrived?.Invoke(client, request);
 
 		public TotServer(IPEndPoint bindToEndPoint)
 		{
@@ -64,6 +68,7 @@ namespace TorOverTcp
 					var totClient = new TotClient(tcpClient);
 
 					await totClient.StartAsync().ConfigureAwait(false);
+					totClient.RequestArrived += TotClient_RequestArrived;
 					using (await ClientsLock.LockAsync().ConfigureAwait(false))
 					{
 						Clients.Add(totClient);
@@ -84,6 +89,8 @@ namespace TorOverTcp
 			}
 		}
 
+		private void TotClient_RequestArrived(object sender, TotRequest request) => OnRequestArrived(sender as TotClient, request);
+
 		public async Task StopAsync()
 		{
 
@@ -102,6 +109,7 @@ namespace TorOverTcp
 					{
 						foreach (var client in Clients)
 						{
+							client.RequestArrived -= TotClient_RequestArrived;
 							await client.StopAsync().ConfigureAwait(false);
 						}
 					}

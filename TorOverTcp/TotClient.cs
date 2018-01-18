@@ -31,6 +31,9 @@ namespace TorOverTcp
 
 		public ConcurrentDictionary<TotMessageId, TotMessageBase> ResponseCache { get; }
 
+		public event EventHandler<TotRequest> RequestArrived;
+		private void OnRequestArrived(TotRequest request) => RequestArrived?.Invoke(this, request);
+
 		/// <param name="connectedClient">Must be already connected.</param>
 		public TotClient(TcpClient connectedClient)
 		{
@@ -141,18 +144,18 @@ namespace TorOverTcp
 			try
 			{
 				Guard.NotNull(nameof(bytes), bytes);
-
+				
 				var messageType = new TotMessageType();
 				messageType.FromByte(bytes[1]);
 
-				if(messageType == TotMessageType.Pong)
+				if (messageType == TotMessageType.Pong)
 				{
 					var response = new TotPong();
 					response.FromBytes(bytes);
 					ResponseCache.TryAdd(response.MessageId, response);
-						
+
 				}
-				if(messageType == TotMessageType.Response)
+				if (messageType == TotMessageType.Response)
 				{
 					var response = new TotResponse();
 					response.FromBytes(bytes);
@@ -162,18 +165,41 @@ namespace TorOverTcp
 
 				var stream = TcpClient.GetStream();
 
-				if (messageType == TotMessageType.Ping)
+				var requestId = TotMessageId.Random;
+				try
 				{
-					var request = new TotPing();
-					request.FromBytes(bytes);
-
-					var responseBytes = TotPong.Instance(request.MessageId).ToBytes();
-					using (await StreamWriterLock.LockAsync().ConfigureAwait(false))
+					if (messageType == TotMessageType.Ping)
 					{
-						await stream.WriteAsync(responseBytes, 0, responseBytes.Length).ConfigureAwait(false);
-						await stream.FlushAsync().ConfigureAwait(false);
+						var request = new TotPing();
+						request.FromBytes(bytes);
+						requestId = request.MessageId;
+						AssertVersion(request.Version, TotVersion.Version1);
+
+						var responseBytes = TotPong.Instance(request.MessageId).ToBytes();
+						await SendAsync(responseBytes).ConfigureAwait(false);
+						return;
 					}
-					return;
+
+					if (messageType == TotMessageType.Request)
+					{
+						var request = new TotRequest();
+						request.FromBytes(bytes);
+						requestId = request.MessageId;
+						AssertVersion(request.Version, TotVersion.Version1);
+
+						OnRequestArrived(request);
+						return;
+					}
+				}
+				catch (TotRequestException)
+				{
+					await SendAsync(TotResponse.VersionMismatch(requestId).ToBytes());
+					throw;
+				}
+				catch
+				{
+					await SendAsync(new TotResponse(TotPurpose.BadRequest, new TotContent("Couldn't process the received message bytes."), requestId).ToBytes());
+					throw;
 				}
 			}
 			catch (Exception ex)
@@ -187,22 +213,35 @@ namespace TorOverTcp
 
 		public async Task PingAsync(int timeout = 3000)
 		{
-			var ping = TotPing.Instance;
-			var requestBytes = ping.ToBytes();
-			var messageId = ping.MessageId;
+			var request = TotPing.Instance;
+			var requestBytes = request.ToBytes();
 
-			var stream = TcpClient.GetStream();
+			await SendAsync(requestBytes).ConfigureAwait(false);
 
-			using (await StreamWriterLock.LockAsync().ConfigureAwait(false))
-			{
-				await stream.WriteAsync(requestBytes, 0, requestBytes.Length).ConfigureAwait(false);
-				await stream.FlushAsync().ConfigureAwait(false);
-			}
+			var response = await ReceiveAsync(request.MessageId, request.Version, timeout).ConfigureAwait(false) as TotPong;
+		}
+
+		public async Task<TotResponse> RequestAsync(TotRequest request, int timeout = 3000)
+		{
+			var requestBytes = request.ToBytes();
+
+			await SendAsync(requestBytes).ConfigureAwait(false);
+
+			var response = await ReceiveAsync(request.MessageId, request.Version, timeout).ConfigureAwait(false) as TotResponse;
+
+			return response;
+		}
+
+		private async Task<TotMessageBase> ReceiveAsync(TotMessageId expectedMessageId, TotVersion expectedVersion, int timeout)
+		{
+			Guard.NotNull(nameof(expectedMessageId), expectedMessageId);
+			Guard.NotNull(nameof(expectedVersion), expectedVersion);
+			Guard.MinimumAndNotNull(nameof(timeout), timeout, 1);
 
 			int delay = 10;
 			int maxDelayCount = timeout / delay;
 			int delayCount = 0;
-			while (!ResponseCache.ContainsKey(messageId))
+			while (!ResponseCache.ContainsKey(expectedMessageId))
 			{
 				if (delayCount > maxDelayCount)
 				{
@@ -213,10 +252,23 @@ namespace TorOverTcp
 
 				delayCount++;
 			}
+			
+			ResponseCache.TryRemove(expectedMessageId, out TotMessageBase response);
+			AssertVersion(expectedVersion, response.Version);
+			return response;
+		}
 
-			var pong = ResponseCache.Single(x => x.Key == messageId).Value as TotPong;
-			ResponseCache.TryRemove(messageId, out TotMessageBase throwAway);
-			AssertVersion(ping.Version, pong.Version);
+		public async Task SendAsync(byte[] requestBytes)
+		{
+			Guard.NotNull(nameof(requestBytes), requestBytes);
+
+			var stream = TcpClient.GetStream();
+
+			using (await StreamWriterLock.LockAsync().ConfigureAwait(false))
+			{
+				await stream.WriteAsync(requestBytes, 0, requestBytes.Length).ConfigureAwait(false);
+				await stream.FlushAsync().ConfigureAwait(false);
+			}
 		}
 
 		#endregion
