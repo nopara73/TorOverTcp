@@ -101,10 +101,10 @@ Tor keeps its circuits alive, as long as they are used. Potentially forever. If 
 
 ### 4.1 Ping Pong
 
-| Version | MessageType | PurposeLength | Purpose | ContentLength | Content |
-|---------|-------------|---------------|---------|---------------|---------|
-| X'01'   | X'06'       | X'04'         | ping    | X'00000000'   |         |
-| X'01'   | X'07'       | X'04'         | pong    | X'00000000'   |         |
+| Version | MessageType | MessageId | PurposeLength | Purpose | ContentLength | Content |
+|---------|-------------|-----------|---------------|---------|---------------|---------|
+| X'01'   | X'06'       | 2         | X'04'         | ping    | X'00000000'   |         |
+| X'01'   | X'07'       | 2         | X'04'         | pong    | X'00000000'   |         |
 
 In order to detect silent network failures, the client and the server SHOULD ping-pong periodically. For privacy against network observers, this ping-pong SHOULD happen randomly, by deafult every 1 to 10 minutes, but it SHOULD be adjustable based on the context of the specific application.
 
