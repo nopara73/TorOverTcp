@@ -10,6 +10,36 @@ namespace TorOverTcp.TorOverTcp.Models.Messages.Bases
 {
     public abstract class TotMessageBase : ByteArraySerializableBase
 	{
+		#region Statics
+
+		public static IEnumerable<byte[]> SplitByMessages(byte[] receivedBytes)
+		{
+			Guard.NotNull(nameof(receivedBytes), receivedBytes);
+
+			int purposeLength = receivedBytes[4];
+			var contentLength = BitConverter.ToInt32(receivedBytes.Skip(5 + purposeLength).Take(4).ToArray(), 0);
+
+			int lengthSum = 5 + purposeLength + 4 + contentLength;
+			var message = receivedBytes.Take(lengthSum).ToArray();
+
+			yield return message;
+
+			while (receivedBytes.Length != lengthSum)
+			{
+				var leftoverBytes = receivedBytes.Skip(lengthSum);
+				purposeLength = leftoverBytes.ToArray()[4];
+				contentLength = BitConverter.ToInt32(leftoverBytes.Skip(5 + purposeLength).Take(4).ToArray(), 0);
+				var messageLength = 5 + purposeLength + 4 + contentLength;
+				message = leftoverBytes.Take(messageLength).ToArray();
+
+				yield return message;
+
+				lengthSum += messageLength;
+			}
+		}
+
+		#endregion
+
 		#region PropertiesAndMembers
 
 		public TotVersion Version { get; set; }

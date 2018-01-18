@@ -1,8 +1,10 @@
 using DotNetEssentials.Logging;
 using System;
+using System.Linq;
 using System.Text;
 using TorOverTcp.TorOverTcp.Models.Fields;
 using TorOverTcp.TorOverTcp.Models.Messages;
+using TorOverTcp.TorOverTcp.Models.Messages.Bases;
 using Xunit;
 
 namespace TorOverTcp.Tests
@@ -171,6 +173,17 @@ namespace TorOverTcp.Tests
 			Assert.Equal(97, x.GetLastCellFullnessPercentage());
 			Assert.Equal(1, x.GetNumberOfCells());
 			Assert.Equal(497, x.GetNumberOfDummyBytesInLastCell());
+
+			var messages = TotMessageBase.SplitByMessages(ByteHelpers.Combine(
+				TotPing.Instance.ToBytes(),
+				TotPong.Instance(TotMessageId.Random).ToBytes(),
+				TotResponse.BadRequest(TotMessageId.Random).ToBytes(),
+				TotResponse.Success(TotMessageId.Random).ToBytes(),
+				TotResponse.UnsuccessfulRequest(TotMessageId.Random).ToBytes(),
+				TotResponse.VersionMismatch(TotMessageId.Random).ToBytes(),
+				new TotRequest("fooPurpose", new TotContent("foo content")).ToBytes()));
+
+			Assert.Equal(7, messages.Count());
 		}
 	}
 }

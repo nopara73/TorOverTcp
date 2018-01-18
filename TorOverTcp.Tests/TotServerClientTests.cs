@@ -145,5 +145,38 @@ namespace TorOverTcp.Tests
 				await server.StopAsync();
 			}
 		}
+
+		[Fact]
+		public async Task PingPongInParallelAsync()
+		{
+			var serverEndPoint = new IPEndPoint(IPAddress.Loopback, new Random().Next(5000, 5500));
+			var server = new TotServer(serverEndPoint);
+			var tcpClient = new TcpClient();
+			TotClient totClient = null;
+
+			try
+			{
+				await server.StartAsync();
+				await tcpClient.ConnectAsync(serverEndPoint.Address, serverEndPoint.Port);
+
+				totClient = new TotClient(tcpClient);
+
+				await totClient.StartAsync();
+				
+				var pingJobs = new List<Task>();
+				for (int i = 0; i < 10; i++)
+				{
+					pingJobs.Add(totClient.PingAsync());
+				}
+
+				await Task.WhenAll(pingJobs);
+			}
+			finally
+			{
+				await totClient?.StopAsync();
+				tcpClient?.Dispose(); // this is when tcpClient.ConnectAsync fails
+				await server.StopAsync();
+			}
+		}
 	}
 }

@@ -78,7 +78,10 @@ namespace TorOverTcp
 					// if we could fit everything into our buffer, then we get our message
 					if (!stream.DataAvailable)
 					{
-						ProcessMessageBytesAsync(buffer.Take(receiveCount).ToArray());
+						foreach (var messageBytes in TotMessageBase.SplitByMessages(buffer.Take(receiveCount).ToArray()))
+						{
+							ProcessMessageBytesAsync(messageBytes);
+						}
 					}
 
 					// while we have data available, start building a bytearray
@@ -95,7 +98,10 @@ namespace TorOverTcp
 						builder.Append(buffer.Take(receiveCount).ToArray());
 					}
 
-					ProcessMessageBytesAsync(builder.ToArray());
+					foreach (var messageBytes in TotMessageBase.SplitByMessages(builder.ToArray()))
+					{
+						ProcessMessageBytesAsync(messageBytes);
+					}
 				}
 				catch (ObjectDisposedException ex)
 				{
