@@ -25,7 +25,7 @@ namespace TorOverTcp.Tests
 		{
 			Assert.Throws<ArgumentNullException>(() => new TotServer(null));
 
-			var serverEndPoint = new IPEndPoint(IPAddress.Loopback, 5282);
+			var serverEndPoint = new IPEndPoint(IPAddress.Loopback, 5280);
 			var server = new TotServer(serverEndPoint);
 
 			await server.StopAsync(); // make sure calling stop doesn't throw exception
@@ -122,7 +122,7 @@ namespace TorOverTcp.Tests
 		[Fact]
 		public async Task PingPongAsync()
 		{
-			var serverEndPoint = new IPEndPoint(IPAddress.Loopback, 5282);
+			var serverEndPoint = new IPEndPoint(IPAddress.Loopback, 5281);
 			var server = new TotServer(serverEndPoint);
 			var tcpClient = new TcpClient();
 			TotClient totClient = null;
