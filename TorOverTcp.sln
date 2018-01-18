@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27130.2020
+VisualStudioVersion = 15.0.27130.2024
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TorOverTcp", "TorOverTcp\TorOverTcp.csproj", "{5C3AADA0-5F13-4074-A48C-10ECFCE03843}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TorOverTcp", "TorOverTcp\TorOverTcp.csproj", "{5C3AADA0-5F13-4074-A48C-10ECFCE03843}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TorOverTcp.Tests", "TorOverTcp.Tests\TorOverTcp.Tests.csproj", "{88E67B34-688A-4AF4-BB87-04A73D0B020E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TorOverTcp.Tests", "TorOverTcp.Tests\TorOverTcp.Tests.csproj", "{88E67B34-688A-4AF4-BB87-04A73D0B020E}"
 	ProjectSection(ProjectDependencies) = postProject
 		{5C3AADA0-5F13-4074-A48C-10ECFCE03843} = {5C3AADA0-5F13-4074-A48C-10ECFCE03843}
 	EndProjectSection
