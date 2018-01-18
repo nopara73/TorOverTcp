@@ -185,7 +185,7 @@ namespace TorOverTcp
 
 		#region Requests
 
-		public async Task PingAsync()
+		public async Task PingAsync(int timeout = 3000)
 		{
 			var ping = TotPing.Instance;
 			var requestBytes = ping.ToBytes();
@@ -199,10 +199,19 @@ namespace TorOverTcp
 				await stream.FlushAsync().ConfigureAwait(false);
 			}
 
-			// todo, needs timeout?
+			int delay = 10;
+			int maxDelayCount = timeout / delay;
+			int delayCount = 0;
 			while (!ResponseCache.ContainsKey(messageId))
 			{
-				await Task.Delay(10).ConfigureAwait(false);
+				if (delayCount > maxDelayCount)
+				{
+					throw new TimeoutException($"No response arrived within the specified timeout: {timeout} milliseconds.");
+				}
+
+				await Task.Delay(delay).ConfigureAwait(false);
+
+				delayCount++;
 			}
 
 			var pong = ResponseCache.Single(x => x.Key == messageId).Value as TotPong;

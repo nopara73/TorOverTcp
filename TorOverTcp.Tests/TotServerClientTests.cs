@@ -147,7 +147,7 @@ namespace TorOverTcp.Tests
 		}
 
 		[Fact]
-		public async Task PingPongInParallelAsync()
+		public async Task PingPongInParallelWithSingleClientAsync()
 		{
 			var serverEndPoint = new IPEndPoint(IPAddress.Loopback, new Random().Next(5000, 5500));
 			var server = new TotServer(serverEndPoint);
@@ -175,6 +175,51 @@ namespace TorOverTcp.Tests
 			{
 				await totClient?.StopAsync();
 				tcpClient?.Dispose(); // this is when tcpClient.ConnectAsync fails
+				await server.StopAsync();
+			}
+		}
+
+		[Fact]
+		public async Task PingPongInParallelWithMultipleClientsAsync()
+		{
+			var serverEndPoint = new IPEndPoint(IPAddress.Loopback, new Random().Next(5000, 5500));
+			var server = new TotServer(serverEndPoint);
+
+			var tcpClients = new List<TcpClient>();
+			var totClients = new List<TotClient>();
+
+			try
+			{
+				await server.StartAsync();
+				for (int i = 0; i < 10; i++)
+				{
+					var tcpClient = new TcpClient();
+					await tcpClient.ConnectAsync(serverEndPoint.Address, serverEndPoint.Port);
+					tcpClients.Add(tcpClient);
+					var totClient = new TotClient(tcpClient);
+					await totClient.StartAsync();
+					totClients.Add(totClient);
+				}
+
+				var pingJobs = new List<Task>();
+				foreach(var totClient in totClients)
+				{
+					pingJobs.Add(totClient.PingAsync());
+				}
+
+				await Task.WhenAll(pingJobs);
+			}
+			finally
+			{
+				foreach(var totClient in totClients)
+				{
+					await totClient?.StopAsync();
+				}
+				foreach(var tcpClient in tcpClients)
+				{
+					tcpClient?.Dispose(); // this is when tcpClient.ConnectAsync fails
+				}
+
 				await server.StopAsync();
 			}
 		}
