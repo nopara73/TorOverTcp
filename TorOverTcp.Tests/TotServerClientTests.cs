@@ -244,8 +244,11 @@ namespace TorOverTcp.Tests
 
 				await totClient.StartAsync();
 
-				var r1 = await totClient.RequestAsync(new TotRequest("hello"));
-				Assert.Equal(TotPurpose.BadRequest, r1.Purpose);
+				var r1 = await totClient.RequestAsync("hello");
+				Assert.Equal("world", r1.ToString());
+
+				await Assert.ThrowsAsync<TotRequestException>(async () => await totClient.RequestAsync("hell"));
+				await Assert.ThrowsAsync<TotRequestException>(async () => await totClient.RequestAsync(new TotRequest("hello") { Version = new TotVersion(200)}));
 			}
 			finally
 			{
@@ -259,7 +262,23 @@ namespace TorOverTcp.Tests
 		private async void RespondsTest_Server_RequestArrivedAsync(object sender, TotRequest request)
 		{
 			var client = sender as TotClient;
-			await client.SendAsync(TotResponse.BadRequest(request.MessageId).ToBytes());
+			var messageId = request.MessageId;
+
+			try
+			{
+				if(request.Purpose.ToString() == "hello")
+				{
+					await client.RespondSuccessAsync(messageId, new TotContent("world"));
+				}
+				else
+				{
+					await client.RespondBadRequestAsync(messageId);
+				}
+			}
+			catch (Exception ex)
+			{
+				await client.RespondUnsuccessfulRequestAsync(messageId, ex.Message);
+			}
 		}
 	}
 }

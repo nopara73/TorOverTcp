@@ -193,12 +193,12 @@ namespace TorOverTcp
 				}
 				catch (TotRequestException)
 				{
-					await SendAsync(TotResponse.VersionMismatch(requestId).ToBytes());
+					await RespondVersionMismatchAsync(requestId).ConfigureAwait(false);
 					throw;
 				}
 				catch
 				{
-					await SendAsync(new TotResponse(TotPurpose.BadRequest, new TotContent("Couldn't process the received message bytes."), requestId).ToBytes());
+					await SendAsync(new TotResponse(TotPurpose.BadRequest, new TotContent("Couldn't process the received message bytes."), requestId).ToBytes()).ConfigureAwait(false);
 					throw;
 				}
 			}
@@ -221,15 +221,41 @@ namespace TorOverTcp
 			var response = await ReceiveAsync(request.MessageId, request.Version, timeout).ConfigureAwait(false) as TotPong;
 		}
 
-		public async Task<TotResponse> RequestAsync(TotRequest request, int timeout = 3000)
+		/// <summary>
+		/// Throws TotRequestException if not success response.
+		/// </summary>
+		public async Task<TotContent> RequestAsync(string request, int timeout = 300)
 		{
+			Guard.NotNullOrEmptyOrWhitespace(nameof(request), request);
+			return await RequestAsync(new TotRequest(request), timeout).ConfigureAwait(false);
+		}
+
+		/// <summary>
+		/// Throws TotRequestException if not success response.
+		/// </summary>
+		public async Task<TotContent> RequestAsync(TotRequest request, int timeout = 3000)
+		{
+			Guard.MinimumAndNotNull(nameof(timeout), timeout, 1);
+
 			var requestBytes = request.ToBytes();
 
 			await SendAsync(requestBytes).ConfigureAwait(false);
 
 			var response = await ReceiveAsync(request.MessageId, request.Version, timeout).ConfigureAwait(false) as TotResponse;
 
-			return response;
+			if (response.Purpose != TotPurpose.Success)
+			{
+				if (response.Content == TotContent.Empty)
+				{
+					throw new TotRequestException($"Server responded with {response.Purpose}.");
+				}
+				else
+				{
+					throw new TotRequestException($"Server responded with {response.Purpose}. Details: {response.Content}"); // DON'T put . at the end, that's the responsibility of the creator of the content.
+				}
+			}
+			
+			return response.Content;
 		}
 
 		private async Task<TotMessageBase> ReceiveAsync(TotMessageId expectedMessageId, TotVersion expectedVersion, int timeout)
@@ -269,6 +295,59 @@ namespace TorOverTcp
 				await stream.WriteAsync(requestBytes, 0, requestBytes.Length).ConfigureAwait(false);
 				await stream.FlushAsync().ConfigureAwait(false);
 			}
+		}
+
+		/// <summary>
+		/// The request was malformed.
+		/// </summary>
+		public async Task RespondBadRequestAsync(TotMessageId messageId, string errorContent = "")
+		{
+			Guard.NotNull(nameof(messageId), messageId);
+			var response = new TotResponse(TotPurpose.BadRequest, messageId);
+
+			if (!string.IsNullOrWhiteSpace(errorContent))
+			{ 
+				response.Content = new TotContent(errorContent);
+			}
+			await SendAsync(response.ToBytes()).ConfigureAwait(false);
+		}
+
+		/// <summary>
+		/// The server was not able to execute the Request properly.
+		/// </summary>
+		public async Task RespondUnsuccessfulRequestAsync(TotMessageId messageId, string errorContent = "")
+		{
+			Guard.NotNull(nameof(messageId), messageId);
+			var response = new TotResponse(TotPurpose.UnsuccessfulRequest, messageId);
+
+			if (!string.IsNullOrWhiteSpace(errorContent))
+			{
+				response.Content = new TotContent(errorContent);
+			}
+			await SendAsync(response.ToBytes()).ConfigureAwait(false);
+		}
+
+		public async Task RespondSuccessAsync(TotMessageId messageId)
+		{
+			Guard.NotNull(nameof(messageId), messageId);
+			var response = new TotResponse(TotPurpose.Success, messageId);
+			
+			await SendAsync(response.ToBytes()).ConfigureAwait(false);
+		}
+
+		public async Task RespondSuccessAsync(TotMessageId messageId, TotContent content)
+		{
+			Guard.NotNull(nameof(messageId), messageId);
+			Guard.NotNull(nameof(content), content);
+			var response = new TotResponse(TotPurpose.Success, content, messageId);
+
+			await SendAsync(response.ToBytes()).ConfigureAwait(false);
+		}
+
+		private async Task RespondVersionMismatchAsync(TotMessageId messageId)
+		{
+			Guard.NotNull(nameof(messageId), messageId);
+			await SendAsync(TotResponse.VersionMismatch(messageId).ToBytes()).ConfigureAwait(false);
 		}
 
 		#endregion
