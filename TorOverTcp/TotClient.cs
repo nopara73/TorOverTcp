@@ -224,7 +224,7 @@ namespace TorOverTcp
 		/// <summary>
 		/// Throws TotRequestException if not success response.
 		/// </summary>
-		public async Task<TotContent> RequestAsync(string request, int timeout = 300)
+		public async Task<TotContent> RequestAsync(string request, int timeout = 3000)
 		{
 			Guard.NotNullOrEmptyOrWhitespace(nameof(request), request);
 			return await RequestAsync(new TotRequest(request), timeout).ConfigureAwait(false);

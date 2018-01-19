@@ -164,7 +164,7 @@ namespace TorOverTcp.Tests
 				totClient = new TotClient(tcpClient);
 
 				await totClient.StartAsync();
-				
+
 				var pingJobs = new List<Task>();
 				for (int i = 0; i < 10; i++)
 				{
@@ -204,7 +204,7 @@ namespace TorOverTcp.Tests
 				}
 
 				var pingJobs = new List<Task>();
-				foreach(var totClient in totClients)
+				foreach (var totClient in totClients)
 				{
 					pingJobs.Add(totClient.PingAsync());
 				}
@@ -213,11 +213,11 @@ namespace TorOverTcp.Tests
 			}
 			finally
 			{
-				foreach(var totClient in totClients)
+				foreach (var totClient in totClients)
 				{
 					await totClient?.StopAsync();
 				}
-				foreach(var tcpClient in tcpClients)
+				foreach (var tcpClient in tcpClients)
 				{
 					tcpClient?.Dispose(); // this is when tcpClient.ConnectAsync fails
 				}
@@ -248,7 +248,7 @@ namespace TorOverTcp.Tests
 				Assert.Equal("world", r1.ToString());
 
 				await Assert.ThrowsAsync<TotRequestException>(async () => await totClient.RequestAsync("hell"));
-				await Assert.ThrowsAsync<TotRequestException>(async () => await totClient.RequestAsync(new TotRequest("hello") { Version = new TotVersion(200)}));
+				await Assert.ThrowsAsync<TotRequestException>(async () => await totClient.RequestAsync(new TotRequest("hello") { Version = new TotVersion(200) }));
 			}
 			finally
 			{
@@ -266,7 +266,7 @@ namespace TorOverTcp.Tests
 
 			try
 			{
-				if(request.Purpose.ToString() == "hello")
+				if (request.Purpose.ToString() == "hello")
 				{
 					await client.RespondSuccessAsync(messageId, new TotContent("world"));
 				}
@@ -280,5 +280,75 @@ namespace TorOverTcp.Tests
 				await client.RespondUnsuccessfulRequestAsync(messageId, ex.Message);
 			}
 		}
+
+		[Fact]
+		public async Task RespondsInParallelWithDelayAsync()
+		{
+			var serverEndPoint = new IPEndPoint(IPAddress.Loopback, new Random().Next(5000, 5500));
+			var server = new TotServer(serverEndPoint);
+
+			var tcpClients = new List<TcpClient>();
+			var totClients = new List<TotClient>();
+
+			try
+			{
+				await server.StartAsync();
+				server.RequestArrived += RespondsInParallelWithDelayTest_Server_RequestArrivedAsync;
+
+				for (int i = 0; i < 10; i++)
+				{
+					var tcpClient = new TcpClient();
+					await tcpClient.ConnectAsync(serverEndPoint.Address, serverEndPoint.Port);
+					tcpClients.Add(tcpClient);
+					var totClient = new TotClient(tcpClient);
+					await totClient.StartAsync();
+					totClients.Add(totClient);
+				}
+
+				var requestJobs = new List<Task>();
+				foreach (var totClient in totClients)
+				{
+					requestJobs.Add(totClient.RequestAsync("hello"));
+				}
+
+				await Task.WhenAll(requestJobs);				
+			}
+			finally
+			{
+				foreach (var totClient in totClients)
+				{
+					await totClient?.StopAsync();
+				}
+				foreach (var tcpClient in tcpClients)
+				{
+					tcpClient?.Dispose(); // this is when tcpClient.ConnectAsync fails
+				}
+				server.RequestArrived -= RespondsInParallelWithDelayTest_Server_RequestArrivedAsync;
+				await server.StopAsync();
+			}
+		}
+
+		private async void RespondsInParallelWithDelayTest_Server_RequestArrivedAsync(object sender, TotRequest request)
+		{
+			var client = sender as TotClient;
+			var messageId = request.MessageId;
+
+			try
+			{
+				if (request.Purpose.ToString() == "hello")
+				{
+					await Task.Delay(new Random().Next(1, 2000));
+					await client.RespondSuccessAsync(messageId, new TotContent("world"));
+				}
+				else
+				{
+					await client.RespondBadRequestAsync(messageId);
+				}
+			}
+			catch (Exception ex)
+			{
+				await client.RespondUnsuccessfulRequestAsync(messageId, ex.Message);
+			}
+		}
 	}
-}
+	}
