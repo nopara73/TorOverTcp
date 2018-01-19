@@ -345,7 +345,7 @@ namespace TorOverTcp.Tests
 			{
 				if (request.Purpose.ToString() == "hello")
 				{
-					await Task.Delay(new Random().Next(1, 2000));
+					await Task.Delay(new Random().Next(1, 1000));
 					await client.RespondSuccessAsync(messageId, new TotContent("world"));
 					Interlocked.Increment(ref _respondsInParallelWithDelayCount);
 				}
