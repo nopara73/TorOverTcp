@@ -311,8 +311,8 @@ namespace TorOverTcp.Tests
 				{
 					requestJobs.Add(totClient.RequestAsync("hello"));
 				}
-				
-				foreach(var job in requestJobs)
+
+				foreach (var job in requestJobs)
 				{
 					var res = await job;
 					Assert.Equal("world", res.ToString());
@@ -359,5 +359,35 @@ namespace TorOverTcp.Tests
 				await client.RespondUnsuccessfulRequestAsync(messageId, ex.Message);
 			}
 		}
+
+		[Fact]
+		public async Task SubscribesAsync()
+		{
+			var serverEndPoint = new IPEndPoint(IPAddress.Loopback, new Random().Next(5000, 5500));
+			var server = new TotServer(serverEndPoint);
+			var tcpClient = new TcpClient();
+			TotClient totClient = null;
+
+			try
+			{
+				await server.StartAsync();
+				server.RequestArrived += RespondsTest_Server_RequestArrivedAsync;
+				await tcpClient.ConnectAsync(serverEndPoint.Address, serverEndPoint.Port);
+
+				totClient = new TotClient(tcpClient);
+
+				await totClient.StartAsync();
+
+				await Assert.ThrowsAsync<TimeoutException>(async () => await totClient.SubscribeAsync("hello"));
+				
+			}
+			finally
+			{
+				await totClient?.StopAsync();
+				tcpClient?.Dispose(); // this is when tcpClient.ConnectAsync fails
+				server.RequestArrived -= RespondsTest_Server_RequestArrivedAsync;
+				await server.StopAsync();
+			}
+		}
 	}
-	}
+}

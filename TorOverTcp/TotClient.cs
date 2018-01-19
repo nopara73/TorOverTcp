@@ -245,18 +245,30 @@ namespace TorOverTcp
 
 			var response = await ReceiveAsync(request.MessageId, request.Version, timeout).ConfigureAwait(false) as TotResponse;
 
-			if (response.Purpose != TotPurpose.Success)
-			{
-				if (response.Content == TotContent.Empty)
-				{
-					throw new TotRequestException($"Server responded with {response.Purpose}.");
-				}
-				else
-				{
-					throw new TotRequestException($"Server responded with {response.Purpose}. Details: {response.Content}"); // DON'T put . at the end, that's the responsibility of the creator of the content.
-				}
-			}
+			// Note: version assertion is inside receive.
+			AssertSuccess(response);
+
+			return response.Content;
+		}
+
+		/// <summary>
+		/// Throws TotRequestException if not success response.
+		/// </summary>
+		public async Task<TotContent> SubscribeAsync(string purpose, int timeout = 3000)
+		{
+			purpose = Guard.NotNullOrEmptyOrWhitespace(nameof(purpose), purpose, trim: true);
+			Guard.MinimumAndNotNull(nameof(timeout), timeout, 1);
+
+			var request = new TotSubscribeRequest(purpose);
+			var requestBytes = request.ToBytes();
+
+			await SendAsync(requestBytes).ConfigureAwait(false);
+
+			var response = await ReceiveAsync(request.MessageId, request.Version, timeout).ConfigureAwait(false) as TotResponse;
 			
+			// Note: version assertion is inside receive.
+			AssertSuccess(response);
+
 			return response.Content;
 		}
 
@@ -353,6 +365,21 @@ namespace TorOverTcp
 		}
 
 		#endregion
+
+		private static void AssertSuccess(TotResponse response)
+		{
+			if (response.Purpose != TotPurpose.Success)
+			{
+				if (response.Content == TotContent.Empty)
+				{
+					throw new TotRequestException($"Server responded with {response.Purpose}.");
+				}
+				else
+				{
+					throw new TotRequestException($"Server responded with {response.Purpose}. Details: {response.Content}"); // DON'T put . at the end, that's the responsibility of the creator of the content.
+				}
+			}
+		}
 
 		private static void AssertVersion(TotVersion expected, TotVersion actual)
 		{
