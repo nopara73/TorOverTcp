@@ -85,6 +85,7 @@ namespace TorOverTcp
 						{
 							ProcessMessageBytesAsync(messageBytes);
 						}
+						continue;
 					}
 
 					// while we have data available, start building a bytearray
@@ -105,6 +106,7 @@ namespace TorOverTcp
 					{
 						ProcessMessageBytesAsync(messageBytes);
 					}
+					continue;
 				}
 				catch (ObjectDisposedException ex)
 				{
@@ -137,7 +139,7 @@ namespace TorOverTcp
 				}
 			}
 		}
-
+		
 		// async void is fine, because in case of exception it logs and it should not be awaited
 		private async void ProcessMessageBytesAsync(byte[] bytes)
 		{
@@ -185,7 +187,7 @@ namespace TorOverTcp
 						var request = new TotRequest();
 						request.FromBytes(bytes);
 						requestId = request.MessageId;
-						AssertVersion(request.Version, TotVersion.Version1);
+						AssertVersion(request.Version, TotVersion.Version1);						
 
 						OnRequestArrived(request);
 						return;

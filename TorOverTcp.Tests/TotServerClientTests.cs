@@ -295,7 +295,8 @@ namespace TorOverTcp.Tests
 				await server.StartAsync();
 				server.RequestArrived += RespondsInParallelWithDelayTest_Server_RequestArrivedAsync;
 
-				for (int i = 0; i < 10; i++)
+				var times = 10;
+				for (int i = 0; i < times; i++)
 				{
 					var tcpClient = new TcpClient();
 					await tcpClient.ConnectAsync(serverEndPoint.Address, serverEndPoint.Port);
@@ -305,13 +306,19 @@ namespace TorOverTcp.Tests
 					totClients.Add(totClient);
 				}
 
-				var requestJobs = new List<Task>();
+				var requestJobs = new List<Task<TotContent>>();
 				foreach (var totClient in totClients)
 				{
 					requestJobs.Add(totClient.RequestAsync("hello"));
 				}
+				
+				foreach(var job in requestJobs)
+				{
+					var res = await job;
+					Assert.Equal("world", res.ToString());
+				}
 
-				await Task.WhenAll(requestJobs);				
+				Assert.Equal(times, Interlocked.Read(ref _respondsInParallelWithDelayCount));
 			}
 			finally
 			{
@@ -328,6 +335,7 @@ namespace TorOverTcp.Tests
 			}
 		}
 
+		private long _respondsInParallelWithDelayCount;
 		private async void RespondsInParallelWithDelayTest_Server_RequestArrivedAsync(object sender, TotRequest request)
 		{
 			var client = sender as TotClient;
@@ -339,6 +347,7 @@ namespace TorOverTcp.Tests
 				{
 					await Task.Delay(new Random().Next(1, 2000));
 					await client.RespondSuccessAsync(messageId, new TotContent("world"));
+					Interlocked.Increment(ref _respondsInParallelWithDelayCount);
 				}
 				else
 				{
